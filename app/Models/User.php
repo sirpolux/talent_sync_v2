@@ -5,6 +5,8 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use App\Models\Organization;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
@@ -44,5 +46,44 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function organizations(): BelongsToMany
+    {
+        return $this->belongsToMany(Organization::class)
+            ->withPivot([
+                'is_org_admin',
+                'is_sub_admin',
+                'is_employee',
+                'is_trainer',
+                'can_manage_courses',
+                'can_manage_reporting',
+                'employee_code',
+                'phone',
+                'category',
+                'department_id',
+                'position_id',
+                'role_started_at',
+                'manager_user_id',
+            ])
+            ->withTimestamps();
+    }
+
+    /**
+     * Why this exists:
+     * We need a single, consistent way to answer: "what can this logged-in user do in the CURRENT org?"
+     * That’s what powers Employee vs Trainer vs Admin UX and authorization.
+     */
+    public function currentOrganizationMembership(): ?\Illuminate\Database\Eloquent\Relations\Pivot
+    {
+        $orgId = session('current_organization_id');
+
+        if (!$orgId) {
+            return null;
+        }
+
+        $org = $this->organizations->firstWhere('id', $orgId);
+
+        return $org?->pivot;
     }
 }
