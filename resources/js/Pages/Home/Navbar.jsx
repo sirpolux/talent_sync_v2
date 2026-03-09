@@ -35,7 +35,7 @@ export default function Navbar() {
 
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-                        <img src="/images/logo.svg" className="h-8" />
+                        <img src="/img/logo.svg" className="h-8" />
                         TalentSync
                     </Link>
 
