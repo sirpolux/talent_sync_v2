@@ -24,7 +24,8 @@ return new class extends Migration
             $table->string('track')->nullable();
 
             // Avoid duplicates within a tenant
-            $table->unique(['organization_id', 'from_position_id', 'to_position_id']);
+            // MySQL has a 64-char identifier limit; provide a shorter index name explicitly.
+            $table->unique(['organization_id', 'from_position_id', 'to_position_id'], 'org_pos_transition_unique');
 
             $table->timestamps();
         });

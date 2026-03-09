@@ -15,7 +15,11 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-
+            $table->string("department_code", 20)->nullable();
+            $table->string("description");
+            $table->integer("roles_count")->default(0);
+            $table->integer("staff_count")->default(0);
+            $table->foreignId("added_by")->nullable()->constrained('users')->nullOnDelete();
             $table->string('name');
             $table->string('slug');
 
