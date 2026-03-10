@@ -71,26 +71,3 @@ class GradingSystem extends Model
         return $score >= $passingGrade->min_value;
     }
 }
-    public function getGradeForScore(float $score): ?string
-    {
-        $scale = $this->grade_scale;
-        arsort($scale); // Sort by score descending
-
-        foreach ($scale as $grade => $minScore) {
-            if ($score >= $minScore) {
-                return $grade;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Check if a score passes this grading system
-     */
-    public function isPassingScore(float $score): bool
-    {
-        $passingScore = $this->getPassingScore();
-        return $passingScore !== null && $score >= $passingScore;
-    }
-}
