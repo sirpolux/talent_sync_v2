@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminDepartmentController;
 use App\Http\Controllers\AdminOrganizationController;
+use App\Http\Controllers\AdminPositionController;
 use App\Http\Controllers\OrganizationSelectionController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
@@ -37,6 +38,7 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     Route::patch('/admin/departments/{department}', [AdminDepartmentController::class, 'update'])->name('admin.departments.update');
     Route::delete('/admin/departments/{department}', [AdminDepartmentController::class, 'destroy'])->name('admin.departments.destroy');
 
+    Route::resource('/admin/positions', AdminPositionController::class);
     Route::get('/admin/account/password', function () {
         return Inertia::render('Admin/Account/Password');
     })->name('admin.account.password');
