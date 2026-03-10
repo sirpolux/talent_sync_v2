@@ -159,4 +159,24 @@ class AdminDepartmentController extends Controller
 
         return redirect()->route('admin.departments.index')->with('status', 'Department deleted.');
     }
+
+    public function show(Request $request, Department $department): Response
+    {
+        $orgId = (int) $request->session()->get('current_organization_id');
+
+        abort_unless($department->organization_id === $orgId, 404);
+
+        return Inertia::render('Admin/Departments/Show', [
+            'department' => $department->only([
+                'id',
+                'name',
+                'slug',
+                'department_code',
+                'description',
+                'roles_count',
+                'staff_count',
+                'created_at',
+            ]),
+        ]);
+    }   
 }

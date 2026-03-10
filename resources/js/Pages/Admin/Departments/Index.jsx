@@ -56,7 +56,7 @@ export default function Index({ departments }) {
                   <th className="text-left px-5 py-3 font-semibold">Code</th>
                   <th className="text-left px-5 py-3 font-semibold">Roles</th>
                   <th className="text-left px-5 py-3 font-semibold">Staff</th>
-                  <th className="text-right px-5 py-3 font-semibold">Actions</th>
+                  <th className="text-right px-5 py-3 font-semibold" colSpan={2} >Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -75,6 +75,14 @@ export default function Index({ departments }) {
                       </td>
                       <td className="px-5 py-3 text-slate-700">
                         {d.staff_count ?? 0}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <Link
+                          href={route("admin.departments.show", d.id)}
+                          className="text-[#1E3A8A] font-semibold hover:underline"
+                        >
+                          View
+                        </Link>
                       </td>
                       <td className="px-5 py-3 text-right">
                         <Link

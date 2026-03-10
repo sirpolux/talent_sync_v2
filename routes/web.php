@@ -45,21 +45,24 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         return Inertia::render('Admin/Dashboard');
     })->name('admin.dashboard');
 
+    // Company & Organization Setup
     Route::get('/admin/company', [AdminOrganizationController::class, 'show'])->name('admin.company.show');
     Route::get('/admin/company/edit', [AdminOrganizationController::class, 'edit'])->name('admin.company.edit');
     Route::patch('/admin/company/edit', [AdminOrganizationController::class, 'update'])->name('admin.company.update');
 
-    Route::get('/admin/departments', [AdminDepartmentController::class, 'index'])->name('admin.departments.index');
-    Route::get('/admin/departments/create', [AdminDepartmentController::class, 'create'])->name('admin.departments.create');
-    Route::post('/admin/departments', [AdminDepartmentController::class, 'store'])->name('admin.departments.store');
-    Route::get('/admin/departments/{department}/edit', [AdminDepartmentController::class, 'edit'])->name('admin.departments.edit');
-    Route::patch('/admin/departments/{department}', [AdminDepartmentController::class, 'update'])->name('admin.departments.update');
-    Route::delete('/admin/departments/{department}', [AdminDepartmentController::class, 'destroy'])->name('admin.departments.destroy');
+    // Departments
+    // Route::get('/admin/departments', [AdminDepartmentController::class, 'index'])->name('admin.departments.index');
+    // Route::get('/admin/departments/create', [AdminDepartmentController::class, 'create'])->name('admin.departments.create');
+    // Route::post('/admin/departments', [AdminDepartmentController::class, 'store'])->name('admin.departments.store');
+    // Route::get('/admin/departments/{department}/edit', [AdminDepartmentController::class, 'edit'])->name('admin.departments.edit');
+    // Route::patch('/admin/departments/{department}', [AdminDepartmentController::class, 'update'])->name('admin.departments.update');
+    // Route::delete('/admin/departments/{department}', [AdminDepartmentController::class, 'destroy'])->name('admin.departments.destroy');
 
+    // Positions
     Route::name('admin.')->group(function(){
         Route::resource('/admin/positions', AdminPositionController::class);
     });
-    //Route::resource('/admin/positions', AdminPositionController::class);
+
     Route::get('/admin/account/password', function () {
         return Inertia::render('Admin/Account/Password');
     })->name('admin.account.password');
@@ -72,6 +75,9 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         Route::resource('competencies', AdminCompetencyController::class);
         Route::resource('grading', AdminGradingSystemController::class);
         Route::resource('assessments', AdminAssessmentController::class);
+
+        Route::resource('departments', AdminDepartmentController::class);
+
 
         // ============================================
         // CAREER MANAGEMENT ROUTES
@@ -88,10 +94,12 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         // ============================================
         // TRAINING & DEVELOPMENT ROUTES
         // ============================================
-        Route::resource('training/programs', AdminTrainingProgramController::class);
-        Route::prefix('training/requests')->name('training.requests.')->group(function() {
-            Route::get('/', [AdminTrainingRequestController::class, '__invoke'])->name('index');
-            Route::get('pending', [AdminTrainingRequestController::class, 'pending'])->name('pending');
+        Route::prefix('training')->name('training.')->group(function() {
+            Route::resource('programs', AdminTrainingProgramController::class);
+            Route::prefix('requests')->name('requests.')->group(function() {
+                Route::get('/', [AdminTrainingRequestController::class, '__invoke'])->name('index');
+                Route::get('pending', [AdminTrainingRequestController::class, 'pending'])->name('pending');
+            });
         });
         Route::resource('trainers', AdminTrainerController::class);
 
@@ -110,7 +118,9 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         // STAFF MANAGEMENT ROUTES
         // ============================================
         Route::resource('employees', AdminEmployeeController::class);
-        Route::resource('staff/assignments', AdminStaffAssignmentController::class);
+        Route::prefix('staff')->name('staff.')->group(function() {
+            Route::resource('assignments', AdminStaffAssignmentController::class);
+        });
 
         // ============================================
         // SETUP & ADMINISTRATION ROUTES

@@ -11,14 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('grading_systems', function (Blueprint $table) {
+        Schema::create('grades', function (Blueprint $table) {
             $table->id();
             
-            // NULL = system-wide default, otherwise org-specific
-            $table->foreignId('organization_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->string('name');
+            $table->foreignId('grading_system_id')->constrained()->cascadeOnDelete();
+            $table->string('label');
+            $table->decimal('min_value', 5, 2);
+            $table->decimal('max_value', 5, 2);
             $table->text('description')->nullable();
-            $table->boolean('is_default')->default(false);
+            
+            // Ordering of grades within system
+            $table->unsignedInteger('order')->default(0);
             
             $table->timestamps();
         });
@@ -29,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('grading_systems');
+        Schema::dropIfExists('grades');
     }
 };

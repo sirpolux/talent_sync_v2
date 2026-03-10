@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Link, usePage } from "@inertiajs/react";
 import {
@@ -37,15 +37,23 @@ function getInitials(nameOrEmail) {
 // Recursive menu item renderer for nested menus
 function MenuItemRenderer({
   item,
-  openSubmenu,
+  openMenus,
   toggleSubmenu,
   activeSubmenu,
-  openedMenu,
+  ensureOpen,
+  ancestors = [],
   level = 0,
 }) {
   const hasChildren =
     Array.isArray(item.children) && item.children.length > 0;
-  const isOpen = openSubmenu === item.key;
+  const isOpen = openMenus.has(item.key);
+
+  const handleLeafItemClick = () => {
+    // Ensure this item and all ancestors stay open when navigating to a leaf item
+    if (!hasChildren && item.href) {
+      ensureOpen([...ancestors, item.key]);
+    }
+  };
 
   return (
     <div key={item.key} className="space-y-1">
@@ -54,7 +62,7 @@ function MenuItemRenderer({
           "flex items-center justify-between gap-3 p-3 rounded-xl cursor-pointer text-gray-700 transition-all",
           level === 0 && "hover:bg-gradient-to-r hover:from-[#1E3A8A]/6 hover:to-[#059669]/6",
           level > 0 && "hover:bg-gray-100",
-          level === 0 && openedMenu === item.key && "bg-gradient-to-r from-[#1E3A8A]/6 to-[#059669]/6"
+          level === 0 && openMenus.has(item.key) && "bg-gradient-to-r from-[#1E3A8A]/6 to-[#059669]/6"
         )}
         onClick={() => (hasChildren ? toggleSubmenu(item.key) : null)}
         style={{ paddingLeft: level > 0 ? `${level * 12 + 12}px` : undefined }}
@@ -68,6 +76,7 @@ function MenuItemRenderer({
           ) : (
             <Link
               href={route(item.href)}
+              onClick={handleLeafItemClick}
               className={cn(
                 level > 0 && "text-sm text-gray-600",
                 level === 0 && "font-medium"
@@ -102,10 +111,11 @@ function MenuItemRenderer({
               <MenuItemRenderer
                 key={child.key}
                 item={child}
-                openSubmenu={openSubmenu}
+                openMenus={openMenus}
                 toggleSubmenu={toggleSubmenu}
                 activeSubmenu={activeSubmenu}
-                openedMenu={openedMenu}
+                ensureOpen={ensureOpen}
+                ancestors={[...ancestors, item.key]}
                 level={level + 1}
               />
             ))}
@@ -123,13 +133,56 @@ export default function AdminLayout({
   activeSubmenu = null,
   children,
 }) {
-  const { auth } = usePage().props;
+  const { auth, url } = usePage().props;
+  const currentUrl = usePage().url;
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [openSubmenu, setOpenSubmenu] = useState(openedMenu);
+  
+  // Helper to find ancestor menu keys for a given route name
+  const findMenuAncestors = useCallback((items, targetRoute, ancestors = []) => {
+    for (const item of items) {
+      if (item.href && route(item.href) === currentUrl) {
+        return [...ancestors, item.key];
+      }
+      if (Array.isArray(item.children)) {
+        const found = findMenuAncestors(item.children, targetRoute, [...ancestors, item.key]);
+        if (found) return found;
+      }
+    }
+    return null;
+  }, [currentUrl]);
+
+  // Initialize open menus based on current route
+  const getInitialOpenMenus = useCallback(() => {
+    // Try to find which menus should be open based on current URL
+    // We'll call this after menuItems is created
+    return new Set([openedMenu]);
+  }, [openedMenu]);
+
+  const [openMenus, setOpenMenus] = useState(getInitialOpenMenus());
 
   const toggleSubmenu = (key) => {
-    setOpenSubmenu((prev) => (prev === key ? null : key));
+    setOpenMenus((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
+  };
+
+  const ensureOpen = (keys) => {
+    setOpenMenus((prev) => {
+      const newSet = new Set(prev);
+      if (Array.isArray(keys)) {
+        keys.forEach(key => newSet.add(key));
+      } else {
+        newSet.add(keys);
+      }
+      return newSet;
+    });
   };
 
   const menuItems = useMemo(
@@ -372,6 +425,27 @@ export default function AdminLayout({
     []
   );
 
+  // Update open menus when the current route changes
+  useEffect(() => {
+    const findAncestors = (items, ancestors = []) => {
+      for (const item of items) {
+        if (item.href && route(item.href) === currentUrl) {
+          return [...ancestors, item.key];
+        }
+        if (Array.isArray(item.children)) {
+          const found = findAncestors(item.children, [...ancestors, item.key]);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const ancestorKeys = findAncestors(menuItems);
+    if (ancestorKeys && ancestorKeys.length > 0) {
+      setOpenMenus(new Set(ancestorKeys));
+    }
+  }, [currentUrl, menuItems]);
+
   const displayName = auth?.user?.name || auth?.user?.email;
   const initials = getInitials(displayName);
 
@@ -419,10 +493,10 @@ export default function AdminLayout({
                     <MenuItemRenderer
                       key={item.key}
                       item={item}
-                      openSubmenu={openSubmenu}
+                      openMenus={openMenus}
                       toggleSubmenu={toggleSubmenu}
                       activeSubmenu={activeSubmenu}
-                      openedMenu={openedMenu}
+                      ensureOpen={ensureOpen}
                       level={0}
                     />
                   ))}

@@ -12,20 +12,27 @@ class GradingSystem extends Model
         'organization_id',
         'name',
         'description',
-        'grade_scale',
-        'passing_grade',
+        'is_default',
     ];
 
     protected $casts = [
-        'grade_scale' => 'array', // JSON field for grade scale
+        'is_default' => 'boolean',
     ];
 
     /**
-     * GradingSystem belongs to Organization
+     * GradingSystem belongs to Organization (nullable for system-wide defaults)
      */
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * GradingSystem has many Grades
+     */
+    public function grades(): HasMany
+    {
+        return $this->hasMany(Grade::class)->orderBy('order');
     }
 
     /**
@@ -37,17 +44,33 @@ class GradingSystem extends Model
     }
 
     /**
-     * Get the passing score for this grading system
+     * Get grade for a given score
      */
-    public function getPassingScore(): ?float
+    public function getGradeForScore($score): ?Grade
     {
-        $scale = $this->grade_scale;
-        return isset($scale[$this->passing_grade]) ? (float) $scale[$this->passing_grade] : null;
+        return $this->grades()->where('min_value', '<=', $score)
+            ->where('max_value', '>=', $score)
+            ->first();
     }
 
     /**
-     * Get grade letter for a given score
+     * Get passing grade (highest grade)
      */
+    public function getPassingGrade(): ?Grade
+    {
+        return $this->grades()->orderByDesc('min_value')->first();
+    }
+
+    /**
+     * Check if a score is passing
+     */
+    public function isPassingScore($score): bool
+    {
+        $passingGrade = $this->getPassingGrade();
+        if (!$passingGrade) return false;
+        return $score >= $passingGrade->min_value;
+    }
+}
     public function getGradeForScore(float $score): ?string
     {
         $scale = $this->grade_scale;
