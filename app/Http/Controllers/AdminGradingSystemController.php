@@ -48,12 +48,22 @@ class AdminGradingSystemController extends Controller
         return Inertia::render('Admin/GradingSystems/Index', [
             'gradingSystems' => $gradingSystems,
             'filters' => $request->only(['type', 'search']),
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => 'admin.dashboard'],
+                ['label' => 'Grading Systems'],
+            ],
         ]);
     }
 
     public function create()
     {
-        return Inertia::render('Admin/GradingSystems/Create');
+        return Inertia::render('Admin/GradingSystems/Create', [
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => 'admin.dashboard'],
+                ['label' => 'Grading Systems', 'href' => 'admin.grading.index'],
+                ['label' => 'Create'],
+            ],
+        ]);
     }
 
     public function store(Request $request)
@@ -136,6 +146,12 @@ class AdminGradingSystemController extends Controller
                 'created_at' => $gradingSystem->created_at,
                 'updated_at' => $gradingSystem->updated_at,
             ],
+        ], [
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => 'admin.dashboard'],
+                ['label' => 'Grading Systems', 'href' => 'admin.grading.index'],
+                ['label' => $gradingSystem->name],
+            ],
         ]);
     }
 
@@ -160,6 +176,12 @@ class AdminGradingSystemController extends Controller
                         'description' => $grade->description,
                     ];
                 }),
+            ],
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => 'admin.dashboard'],
+                ['label' => 'Grading Systems', 'href' => 'admin.grading.index'],
+                ['label' => $gradingSystem->name, 'href' => route('admin.grading.show', $gradingSystem)],
+                ['label' => 'Edit'],
             ],
         ]);
     }
@@ -210,6 +232,13 @@ class AdminGradingSystemController extends Controller
     public function destroy($id)
     {
         $gradingSystem = GradingSystem::findOrFail($id);
+
+        // Prevent deletion of system-wide grading systems
+        if ($gradingSystem->organization_id === null) {
+            return back()->withErrors([
+                'grading_system' => 'System-wide grading systems cannot be deleted.',
+            ]);
+        }
 
         // Check if grading system is being used by positions
         if ($gradingSystem->positions()->count() > 0) {

@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Search, Filter, Eye, Edit, Trash2, Star, Building2, Globe } from 'lucide-react';
 
 import AdminLayout from '@/Layouts/AdminLayout';
+import Breadcrumbs from '@/Components/Breadcrumbs';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Badge } from '@/Components/ui/badge';
@@ -33,14 +34,14 @@ import {
   AlertDialogTrigger,
 } from '@/Components/ui/alert-dialog';
 
-export default function Index({ gradingSystems, filters }) {
+export default function Index({ gradingSystems, filters, breadcrumbs }) {
   const [searchTerm, setSearchTerm] = useState(filters.search || '');
-  const [typeFilter, setTypeFilter] = useState(filters.type || '');
+  const [typeFilter, setTypeFilter] = useState(filters.type || 'all');
 
   const handleSearch = () => {
     router.get(route('admin.grading.index'), {
       search: searchTerm,
-      type: typeFilter,
+      type: typeFilter === 'all' ? '' : typeFilter,
     }, {
       preserveState: true,
       replace: true,
@@ -51,7 +52,7 @@ export default function Index({ gradingSystems, filters }) {
     setTypeFilter(value);
     router.get(route('admin.grading.index'), {
       search: searchTerm,
-      type: value,
+      type: value === 'all' ? '' : value,
     }, {
       preserveState: true,
       replace: true,
@@ -80,6 +81,8 @@ export default function Index({ gradingSystems, filters }) {
       <Head title="Grading Systems" />
 
       <div className="space-y-6">
+        <Breadcrumbs items={breadcrumbs} />
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -114,7 +117,7 @@ export default function Index({ gradingSystems, filters }) {
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Systems</SelectItem>
+              <SelectItem value="all">All Systems</SelectItem>
               <SelectItem value="system">System-wide</SelectItem>
               <SelectItem value="organization">Organization-specific</SelectItem>
             </SelectContent>

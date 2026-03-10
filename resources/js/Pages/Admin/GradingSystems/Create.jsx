@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react';
 
 import AdminLayout from '@/Layouts/AdminLayout';
+import Breadcrumbs from '@/Components/Breadcrumbs';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -11,7 +12,7 @@ import { Checkbox } from '@/Components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Badge } from '@/Components/ui/badge';
 
-export default function Create() {
+export default function Create({ breadcrumbs }) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
