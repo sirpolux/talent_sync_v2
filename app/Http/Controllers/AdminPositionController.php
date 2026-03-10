@@ -30,11 +30,14 @@ class AdminPositionController extends Controller
     {
         $orgId = (int) $request->session()->get('current_organization_id');
         $search = $request->input('search');
+        $page = (int) $request->input('page', 1);
+        $perPage = (int) $request->input('per_page', 15);
 
-        $positions = $this->positionService->getPositionsWithRelations($orgId, $search);
+        $result = $this->positionService->getPaginatedPositions($orgId, $search, $page, $perPage);
 
         return Inertia::render('Admin/Positions/Index', [
-            'positions' => $positions,
+            'positions' => $result['data'],
+            'pagination' => $result['pagination'],
             'search' => $search,
         ]);
     }
@@ -56,8 +59,18 @@ class AdminPositionController extends Controller
                 'department_code',
             ]);
 
+        $positions = Position::query()
+            ->where('organization_id', $orgId)
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'level',
+            ]);
+
         return Inertia::render('Admin/Positions/Create', [
             'departments' => $departments,
+            'positions' => $positions,
             'levels' => ['entry', 'intermediate', 'senior', 'lead', 'manager', 'director'],
             'durationTypes' => ['days', 'weeks', 'months', 'years'],
         ]);

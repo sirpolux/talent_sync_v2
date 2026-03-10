@@ -12,6 +12,11 @@ import {
   MonitorCog,
   Users,
   X,
+  Target,
+  TrendingUp,
+  BookOpen,
+  BarChart3,
+  User2,
 } from "lucide-react";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
@@ -27,6 +32,88 @@ function getInitials(nameOrEmail) {
   const parts = s.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return s.slice(0, 2).toUpperCase();
+}
+
+// Recursive menu item renderer for nested menus
+function MenuItemRenderer({
+  item,
+  openSubmenu,
+  toggleSubmenu,
+  activeSubmenu,
+  openedMenu,
+  level = 0,
+}) {
+  const hasChildren =
+    Array.isArray(item.children) && item.children.length > 0;
+  const isOpen = openSubmenu === item.key;
+
+  return (
+    <div key={item.key} className="space-y-1">
+      <div
+        className={cn(
+          "flex items-center justify-between gap-3 p-3 rounded-xl cursor-pointer text-gray-700 transition-all",
+          level === 0 && "hover:bg-gradient-to-r hover:from-[#1E3A8A]/6 hover:to-[#059669]/6",
+          level > 0 && "hover:bg-gray-100",
+          level === 0 && openedMenu === item.key && "bg-gradient-to-r from-[#1E3A8A]/6 to-[#059669]/6"
+        )}
+        onClick={() => (hasChildren ? toggleSubmenu(item.key) : null)}
+        style={{ paddingLeft: level > 0 ? `${level * 12 + 12}px` : undefined }}
+      >
+        <div className="flex items-center gap-3 text-sm">
+          {level === 0 && <span className="text-[#1E3A8A]">{item.icon}</span>}
+          {hasChildren ? (
+            <span className={cn(level > 0 && "text-sm text-gray-600", level === 0 && "font-medium")}>
+              {item.label}
+            </span>
+          ) : (
+            <Link
+              href={route(item.href)}
+              className={cn(
+                level > 0 && "text-sm text-gray-600",
+                level === 0 && "font-medium"
+              )}
+            >
+              {item.label}
+            </Link>
+          )}
+        </div>
+
+        {hasChildren && (
+          <button type="button" className="flex items-center text-gray-500">
+            {isOpen ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </button>
+        )}
+      </div>
+
+      {hasChildren && isOpen && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="overflow-hidden"
+        >
+          <div className="flex flex-col gap-1">
+            {item.children.map((child) => (
+              <MenuItemRenderer
+                key={child.key}
+                item={child}
+                openSubmenu={openSubmenu}
+                toggleSubmenu={toggleSubmenu}
+                activeSubmenu={activeSubmenu}
+                openedMenu={openedMenu}
+                level={level + 1}
+              />
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
 }
 
 export default function AdminLayout({
@@ -47,47 +134,237 @@ export default function AdminLayout({
 
   const menuItems = useMemo(
     () => [
+      // ============================================
+      // OVERVIEW & QUICK ACCESS
+      // ============================================
       {
         key: "overview",
         icon: <Home className="w-5 h-5" />,
         label: "Overview",
         href: "admin.dashboard",
       },
+
+      // ============================================
+      // ORGANIZATION SETUP
+      // ============================================
       {
-        key: "company",
-        icon: <BriefcaseBusiness className="w-5 h-5" />,
-        label: "Company",
+        key: "setup",
+        icon: <MonitorCog className="w-5 h-5" />,
+        label: "Setup",
         children: [
           {
-            key: "company.overview",
-            label: "Overview",
+            key: "setup.company",
+            label: "Company Profile",
             href: "admin.company.show",
           },
           {
-            key: "company.profile",
-            label: "Edit Profile",
-            href: "admin.company.edit",
+            key: "setup.structure",
+            label: "Organization Structure",
+            children: [
+              { key: "setup.departments", label: "Departments", href: "admin.departments.index" },
+              { key: "setup.positions", label: "Positions", href: "admin.positions.index" },
+              { key: "setup.roles", label: "Roles", href: "admin.roles.index" },
+            ],
+          },
+          {
+            key: "setup.admins",
+            label: "Admins & Permissions",
+            href: "admin.admins.index",
           },
         ],
       },
+
+      // ============================================
+      // STAFF MANAGEMENT
+      // ============================================
       {
-        key: "account",
-        icon: <MonitorCog className="w-5 h-5" />,
-        label: "Account",
-        children: [
-          { key: "profile", label: "Manage Profile", href: "profile.edit" },
-          { key: "password", label: "Change Password", href: "admin.account.password" },
-        ],
-      },
-      {
-        key: "org",
+        key: "staff",
         icon: <Users className="w-5 h-5" />,
-        label: "Organization",
+        label: "Staff Management",
         children: [
           {
-            key: "org.departments",
-            label: "Departments",
-            href: "admin.departments.index",
+            key: "staff.employees",
+            label: "Employees",
+            href: "admin.employees.index",
+          },
+          {
+            key: "staff.add",
+            label: "Add Employee",
+            href: "admin.employees.create",
+          },
+          {
+            key: "staff.assignments",
+            label: "Position Assignments",
+            href: "admin.staff.assignments.index",
+          },
+        ],
+      },
+
+      // ============================================
+      // TALENT DEVELOPMENT
+      // ============================================
+      {
+        key: "talent",
+        icon: <Target className="w-5 h-5" />,
+        label: "Talent Development",
+        children: [
+          {
+            key: "talent.skills",
+            label: "Skills",
+            href: "admin.skills.index",
+          },
+          {
+            key: "talent.competencies",
+            label: "Competency Mapping",
+            href: "admin.competencies.index",
+          },
+          {
+            key: "talent.grading",
+            label: "Grading Systems",
+            href: "admin.grading.index",
+          },
+          {
+            key: "talent.assessments",
+            label: "Assessments",
+            href: "admin.assessments.index",
+          },
+        ],
+      },
+
+      // ============================================
+      // CAREER MANAGEMENT
+      // ============================================
+      {
+        key: "careers",
+        icon: <TrendingUp className="w-5 h-5" />,
+        label: "Career Management",
+        children: [
+          {
+            key: "careers.paths",
+            label: "Career Paths",
+            href: "admin.transitions.index",
+          },
+          {
+            key: "careers.hierarchies",
+            label: "Position Hierarchies",
+            href: "admin.hierarchies.index",
+          },
+          {
+            key: "careers.promotions",
+            label: "Promotions",
+            children: [
+              {
+                key: "careers.promotions.eligible",
+                label: "Eligible Candidates",
+                href: "admin.promotions.eligible",
+              },
+              {
+                key: "careers.promotions.pending",
+                label: "Pending Approvals",
+                href: "admin.promotions.pending",
+              },
+              {
+                key: "careers.promotions.history",
+                label: "History",
+                href: "admin.promotions.history",
+              },
+            ],
+          },
+          {
+            key: "careers.gap",
+            label: "Skills Gap Analysis",
+            href: "admin.skills-gap.index",
+          },
+        ],
+      },
+
+      // ============================================
+      // TRAINING & DEVELOPMENT
+      // ============================================
+      {
+        key: "training",
+        icon: <BookOpen className="w-5 h-5" />,
+        label: "Training & Development",
+        children: [
+          {
+            key: "training.programs",
+            label: "Training Programs",
+            href: "admin.training.programs.index",
+          },
+          {
+            key: "training.requests",
+            label: "Training Requests",
+            children: [
+              {
+                key: "training.requests.pending",
+                label: "Pending",
+                href: "admin.training.requests.pending",
+              },
+              {
+                key: "training.requests.all",
+                label: "All Requests",
+                href: "admin.training.requests.index",
+              },
+            ],
+          },
+          {
+            key: "training.tutors",
+            label: "Trainers/Tutors",
+            href: "admin.trainers.index",
+          },
+        ],
+      },
+
+      // ============================================
+      // REPORTING & ANALYTICS
+      // ============================================
+      {
+        key: "reporting",
+        icon: <BarChart3 className="w-5 h-5" />,
+        label: "Reporting & Analytics",
+        children: [
+          {
+            key: "reporting.dashboards",
+            label: "Dashboards",
+            href: "admin.reporting.dashboard",
+          },
+          {
+            key: "reporting.promotions",
+            label: "Promotion Analytics",
+            href: "admin.reporting.promotions",
+          },
+          {
+            key: "reporting.skills",
+            label: "Skills Analytics",
+            href: "admin.reporting.skills",
+          },
+          {
+            key: "reporting.staff",
+            label: "Staff Analysis",
+            href: "admin.reporting.staff",
+          },
+          {
+            key: "reporting.exports",
+            label: "Reports & Exports",
+            href: "admin.reporting.exports",
+          },
+        ],
+      },
+
+      // ============================================
+      // ACCOUNT & SETTINGS
+      // ============================================
+      {
+        key: "account",
+        icon: <User2 className="w-5 h-5" />,
+        label: "Account",
+        children: [
+          { key: "account.profile", label: "My Profile", href: "profile.edit" },
+          { key: "account.security", label: "Security", href: "admin.account.password" },
+          {
+            key: "account.settings",
+            label: "Settings",
+            href: "admin.settings.index",
           },
         ],
       },
@@ -138,84 +415,17 @@ export default function AdminLayout({
 
                 {/* Menu */}
                 <nav className="flex-1 p-4 space-y-2 overflow-auto">
-                  {menuItems.map((item) => {
-                    const hasChildren =
-                      Array.isArray(item.children) && item.children.length > 0;
-                    const isOpen = openSubmenu === item.key;
-
-                    return (
-                      <div key={item.key} className="space-y-1">
-                        <div
-                          className={cn(
-                            "flex items-center justify-between gap-3 p-3 rounded-xl cursor-pointer text-gray-700 transition-all",
-                            "hover:bg-gradient-to-r hover:from-[#1E3A8A]/6 hover:to-[#059669]/6",
-                            openedMenu === item.key &&
-                              "bg-gradient-to-r from-[#1E3A8A]/6 to-[#059669]/6"
-                          )}
-                          onClick={() =>
-                            hasChildren ? toggleSubmenu(item.key) : null
-                          }
-                        >
-                          <div className="flex items-center gap-3 text-sm">
-                            <span className="text-[#1E3A8A]">{item.icon}</span>
-                            {hasChildren ? (
-                              <span className="font-medium">{item.label}</span>
-                            ) : (
-                              <Link
-                                href={route(item.href)}
-                                className="font-medium text-sm"
-                              >
-                                {item.label}
-                              </Link>
-                            )}
-                          </div>
-
-                          {hasChildren && (
-                            <button
-                              type="button"
-                              className="flex items-center text-gray-500"
-                              onClick={() => toggleSubmenu(item.key)}
-                              aria-expanded={isOpen}
-                              aria-label="Toggle submenu"
-                            >
-                              {isOpen ? (
-                                <ChevronDown className="w-4 h-4" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4" />
-                              )}
-                            </button>
-                          )}
-                        </div>
-
-                        {hasChildren && isOpen && (
-                          <motion.div
-                            key={`${item.key}-submenu`}
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden pl-12 pr-3"
-                          >
-                            <div className="flex flex-col gap-1">
-                              {item.children.map((child) => (
-                                <Link
-                                  key={child.key}
-                                  href={route(child.href)}
-                                  className={cn(
-                                    "text-sm px-3 py-2 rounded-md text-gray-600 transition hover:bg-gray-100",
-                                    activeSubmenu === child.key &&
-                                      "bg-gradient-to-r from-[#1E3A8A]/6 to-[#059669]/6"
-                                  )}
-                                >
-                                  {child.label}
-                                </Link>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {menuItems.map((item) => (
+                    <MenuItemRenderer
+                      key={item.key}
+                      item={item}
+                      openSubmenu={openSubmenu}
+                      toggleSubmenu={toggleSubmenu}
+                      activeSubmenu={activeSubmenu}
+                      openedMenu={openedMenu}
+                      level={0}
+                    />
+                  ))}
                 </nav>
 
                 <div className="px-6 py-4 border-t border-gray-200/50">

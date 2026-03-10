@@ -1,30 +1,60 @@
 import { Link } from "@inertiajs/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-export default function PositionsTable({ positions, search }) {
+export default function PositionsTable({ positions, search, pagination }) {
     const [searchTerm, setSearchTerm] = useState(search || "");
 
-    // Debounced search effect
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const url = new URL(window.location);
-            if (searchTerm) {
-                url.searchParams.set('search', searchTerm);
-            } else {
-                url.searchParams.delete('search');
-            }
-            window.location.href = url.toString();
-        }, 300);
-
-        return () => clearTimeout(timer);
-    }, [searchTerm]);
-
-    const handleSearchChange = (e) => {
-        setSearchTerm(e.target.value);
+    const handleSearch = () => {
+        const url = new URL(window.location);
+        if (searchTerm.trim()) {
+            url.searchParams.set('search', searchTerm);
+        } else {
+            url.searchParams.delete('search');
+        }
+        url.searchParams.set('page', 1);
+        window.location.href = url.toString();
     };
 
-    const clearSearch = () => {
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
+
+    const handleClearSearch = () => {
         setSearchTerm("");
+        const url = new URL(window.location);
+        url.searchParams.delete('search');
+        url.searchParams.set('page', 1);
+        window.location.href = url.toString();
+    };
+
+    const handlePageChange = (page) => {
+        const url = new URL(window.location);
+        url.searchParams.set('page', page);
+        if (search) {
+            url.searchParams.set('search', search);
+        }
+        window.location.href = url.toString();
+    };
+
+    const getPaginationRange = () => {
+        const { current_page, last_page } = pagination || {};
+        if (!current_page || !last_page) return [];
+        
+        const range = [];
+        const maxButtons = 5;
+        let start = Math.max(1, current_page - Math.floor(maxButtons / 2));
+        let end = Math.min(last_page, start + maxButtons - 1);
+        
+        if (end - start < maxButtons - 1) {
+            start = Math.max(1, end - maxButtons + 1);
+        }
+        
+        for (let i = start; i <= end; i++) {
+            range.push(i);
+        }
+        return range;
     };
 
     return (
@@ -36,25 +66,32 @@ export default function PositionsTable({ positions, search }) {
                         type="text"
                         placeholder="Search positions..."
                         value={searchTerm}
-                        onChange={handleSearchChange}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={handleKeyDown}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 pl-9 text-sm placeholder-slate-400 focus:border-[#1E3A8A] focus:outline-none focus:ring-1 focus:ring-[#1E3A8A]"
                     />
-                    <svg
-                        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    <button
+                        onClick={handleSearch}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#1E3A8A] transition-colors"
+                        title="Search"
                     >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        />
-                    </svg>
+                        <svg
+                            className="h-5 w-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            />
+                        </svg>
+                    </button>
                     {searchTerm && (
                         <button
-                            onClick={clearSearch}
+                            onClick={() => setSearchTerm("")}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                         >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,9 +101,17 @@ export default function PositionsTable({ positions, search }) {
                     )}
                 </div>
 
+                {search && (
+                    <button
+                        onClick={handleClearSearch}
+                        className="text-sm text-slate-600 hover:text-slate-900 underline"
+                    >
+                        Clear Filter
+                    </button>
+                )}
+
                 <div className="text-sm text-slate-600">
-                    {positions?.length || 0} position{positions?.length !== 1 ? 's' : ''}
-                    {search && ` found`}
+                    {pagination?.total || 0} position{pagination?.total !== 1 ? 's' : ''}
                 </div>
             </div>
 
@@ -180,6 +225,58 @@ export default function PositionsTable({ positions, search }) {
                     </table>
                 </div>
             </div>
+
+            {/* Pagination Controls */}
+            {pagination && pagination.last_page > 1 && (
+                <div className="flex items-center justify-between gap-4 pt-4">
+                    <div className="text-sm text-slate-600">
+                        Page {pagination.current_page} of {pagination.last_page}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        {/* Previous Button */}
+                        <button
+                            onClick={() => handlePageChange(pagination.current_page - 1)}
+                            disabled={pagination.current_page === 1}
+                            className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+
+                        {/* Page Numbers */}
+                        {getPaginationRange().map((page) => (
+                            <button
+                                key={page}
+                                onClick={() => handlePageChange(page)}
+                                className={`inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium border transition-colors ${
+                                    page === pagination.current_page
+                                        ? 'bg-[#1E3A8A] text-white border-[#1E3A8A]'
+                                        : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+
+                        {/* Next Button */}
+                        <button
+                            onClick={() => handlePageChange(pagination.current_page + 1)}
+                            disabled={!pagination.has_more}
+                            className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div className="text-sm text-slate-600">
+                        {Math.min((pagination.current_page - 1) * pagination.per_page + 1, pagination.total)} - {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

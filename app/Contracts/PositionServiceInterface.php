@@ -44,5 +44,10 @@ interface PositionServiceInterface
     /**
      * Get positions with related data for display
      */
-    public function getPositionsWithRelations(int $organizationId, ?string $search = null): Collection;
+    public function getPositionsWithRelations(int $organizationId, ?string $search = null, int $perPage = 15): Collection;
+
+    /**
+     * Get paginated positions for display
+     */
+    public function getPaginatedPositions(int $organizationId, ?string $search = null, int $page = 1, int $perPage = 15): array;
 }

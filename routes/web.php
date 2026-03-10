@@ -3,6 +3,24 @@
 use App\Http\Controllers\AdminDepartmentController;
 use App\Http\Controllers\AdminOrganizationController;
 use App\Http\Controllers\AdminPositionController;
+use App\Http\Controllers\AdminSkillController;
+use App\Http\Controllers\AdminCompetencyController;
+use App\Http\Controllers\AdminGradingSystemController;
+use App\Http\Controllers\AdminAssessmentController;
+use App\Http\Controllers\AdminTransitionController;
+use App\Http\Controllers\AdminHierarchyController;
+use App\Http\Controllers\AdminPromotionController;
+use App\Http\Controllers\AdminSkillGapController;
+use App\Http\Controllers\AdminTrainingProgramController;
+use App\Http\Controllers\AdminTrainingRequestController;
+use App\Http\Controllers\AdminTrainerController;
+use App\Http\Controllers\AdminReportingController;
+use App\Http\Controllers\AdminEmployeeController;
+use App\Http\Controllers\AdminStaffAssignmentController;
+use App\Http\Controllers\AdminRoleController;
+use App\Http\Controllers\AdminSettingsController;
+use App\Http\Controllers\AdminAdminController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrganizationSelectionController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
@@ -18,9 +36,9 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(function () {
     Route::get('/admin', function () {
@@ -38,10 +56,69 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     Route::patch('/admin/departments/{department}', [AdminDepartmentController::class, 'update'])->name('admin.departments.update');
     Route::delete('/admin/departments/{department}', [AdminDepartmentController::class, 'destroy'])->name('admin.departments.destroy');
 
-    Route::resource('/admin/positions', AdminPositionController::class);
+    Route::name('admin.')->group(function(){
+        Route::resource('/admin/positions', AdminPositionController::class);
+    });
+    //Route::resource('/admin/positions', AdminPositionController::class);
     Route::get('/admin/account/password', function () {
         return Inertia::render('Admin/Account/Password');
     })->name('admin.account.password');
+
+    // ============================================
+    // TALENT DEVELOPMENT ROUTES
+    // ============================================
+    Route::name('admin.')->prefix('admin')->group(function() {
+        Route::resource('skills', AdminSkillController::class);
+        Route::resource('competencies', AdminCompetencyController::class);
+        Route::resource('grading', AdminGradingSystemController::class);
+        Route::resource('assessments', AdminAssessmentController::class);
+
+        // ============================================
+        // CAREER MANAGEMENT ROUTES
+        // ============================================
+        Route::resource('transitions', AdminTransitionController::class);
+        Route::resource('hierarchies', AdminHierarchyController::class);
+        Route::prefix('promotions')->name('promotions.')->group(function() {
+            Route::get('eligible', [AdminPromotionController::class, 'eligible'])->name('eligible');
+            Route::get('pending', [AdminPromotionController::class, 'pending'])->name('pending');
+            Route::get('history', [AdminPromotionController::class, 'history'])->name('history');
+        });
+        Route::get('skills-gap', [AdminSkillGapController::class, '__invoke'])->name('skills-gap.index');
+
+        // ============================================
+        // TRAINING & DEVELOPMENT ROUTES
+        // ============================================
+        Route::resource('training/programs', AdminTrainingProgramController::class);
+        Route::prefix('training/requests')->name('training.requests.')->group(function() {
+            Route::get('/', [AdminTrainingRequestController::class, '__invoke'])->name('index');
+            Route::get('pending', [AdminTrainingRequestController::class, 'pending'])->name('pending');
+        });
+        Route::resource('trainers', AdminTrainerController::class);
+
+        // ============================================
+        // REPORTING & ANALYTICS ROUTES
+        // ============================================
+        Route::prefix('reporting')->name('reporting.')->group(function() {
+            Route::get('dashboard', [AdminReportingController::class, 'dashboard'])->name('dashboard');
+            Route::get('promotions', [AdminReportingController::class, 'promotions'])->name('promotions');
+            Route::get('skills', [AdminReportingController::class, 'skills'])->name('skills');
+            Route::get('staff', [AdminReportingController::class, 'staff'])->name('staff');
+            Route::get('exports', [AdminReportingController::class, 'exports'])->name('exports');
+        });
+
+        // ============================================
+        // STAFF MANAGEMENT ROUTES
+        // ============================================
+        Route::resource('employees', AdminEmployeeController::class);
+        Route::resource('staff/assignments', AdminStaffAssignmentController::class);
+
+        // ============================================
+        // SETUP & ADMINISTRATION ROUTES
+        // ============================================
+        Route::resource('roles', AdminRoleController::class);
+        Route::resource('settings', AdminSettingsController::class);
+        Route::resource('admins', AdminAdminController::class);
+    });
 });
 
 Route::middleware('auth')->group(function () {

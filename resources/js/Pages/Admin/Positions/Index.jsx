@@ -1,8 +1,9 @@
 import AdminLayout from "@/Layouts/AdminLayout";
 import Breadcrumbs from "@/Components/Breadcrumbs";
 import { Head, Link, usePage } from "@inertiajs/react";
+import PositionsTable from "./PositionsTable";
 
-export default function Index({ positions, search }) {
+export default function Index({ positions, search, pagination }) {
     const { flash } = usePage().props;
 
     return (
@@ -14,7 +15,7 @@ export default function Index({ positions, search }) {
         >
             <Head title="Positions" />
 
-            <div className="max-w-5xl space-y-4">
+            <div className="max-w-6xl space-y-4">
                 <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
                         <Breadcrumbs
@@ -49,7 +50,7 @@ export default function Index({ positions, search }) {
                 </div>
 
                 <div className="bg-white/90 backdrop-blur border border-white/30 shadow-sm rounded-2xl p-6">
-                    <PositionsTable positions={positions} search={search} />
+                    <PositionsTable positions={positions} search={search} pagination={pagination} />
                 </div>
             </div>
         </AdminLayout>

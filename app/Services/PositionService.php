@@ -55,9 +55,10 @@ class PositionService implements PositionServiceInterface
      *
      * @param int $organizationId
      * @param string|null $search
+     * @param int $perPage
      * @return Collection
      */
-    public function getPositionsWithRelations(int $organizationId, ?string $search = null): Collection
+    public function getPositionsWithRelations(int $organizationId, ?string $search = null, int $perPage = 15): Collection
     {
         $query = Position::query()
             ->where('organization_id', $organizationId)
@@ -221,5 +222,40 @@ class PositionService implements PositionServiceInterface
         }
 
         return $query->exists();
+    }
+
+    /**
+     * Get paginated positions for listing views
+     *
+     * @param int $organizationId
+     * @param string|null $search
+     * @param int $page
+     * @param int $perPage
+     * @return array
+     */
+    public function getPaginatedPositions(int $organizationId, ?string $search = null, int $page = 1, int $perPage = 15): array
+    {
+        $query = Position::query()
+            ->where('organization_id', $organizationId)
+            ->with(['department', 'organization']);
+
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        $paginated = $query
+            ->orderBy('name')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return [
+            'data' => $paginated->items(),
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+                'last_page' => $paginated->lastPage(),
+                'has_more' => $paginated->hasMorePages(),
+            ],
+        ];
     }
 }
