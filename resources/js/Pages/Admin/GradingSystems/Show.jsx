@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Edit, Star, Building2, Globe, Users, Calendar } from 'lucide-react';
 
 import AdminLayout from '@/Layouts/AdminLayout';
+import Breadcrumbs from '@/Components/Breadcrumbs';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
@@ -16,7 +17,7 @@ import {
   TableRow,
 } from '@/Components/ui/table';
 
-export default function Show({ gradingSystem }) {
+export default function Show({ gradingSystem, breadcrumbs }) {
   const handleDelete = () => {
     if (confirm('Are you sure you want to delete this grading system?')) {
       router.delete(route('admin.grading.destroy', gradingSystem.id));
@@ -32,16 +33,29 @@ export default function Show({ gradingSystem }) {
     >
       <Head title={gradingSystem.name} />
 
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href={route('admin.grading.index')}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Grading Systems
-              </Link>
-            </Button>
+      <div className="space-y-6">
+        <Breadcrumbs items={breadcrumbs} />
+
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            {/* <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={route('admin.grading.index')}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Grading Systems
+                </Link>
+              </Button>
+            </div> */}
+
+            <div className="flex gap-2">
+              <Button variant="outline" asChild>
+                <Link href={route('admin.grading.edit', gradingSystem.id)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Link>
+              </Button>
+            </div>
           </div>
 
           <div className="flex gap-2">
@@ -217,6 +231,7 @@ export default function Show({ gradingSystem }) {
           </CardContent>
         </Card>
       </div>
+      
     </AdminLayout>
   );
 }

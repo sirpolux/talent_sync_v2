@@ -146,7 +146,6 @@ class AdminGradingSystemController extends Controller
                 'created_at' => $gradingSystem->created_at,
                 'updated_at' => $gradingSystem->updated_at,
             ],
-        ], [
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => 'admin.dashboard'],
                 ['label' => 'Grading Systems', 'href' => 'admin.grading.index'],

@@ -51,7 +51,7 @@ export default function HeroSection() {
                     <div className="bg-white shadow-xl rounded-xl border p-4">
 
                         <img
-                            src="/images/dashboard-preview.png"
+                            src="/img/talent_sync_hero.jpg"
                             alt="TalentSync Dashboard"
                             className="rounded-lg"
                         />
