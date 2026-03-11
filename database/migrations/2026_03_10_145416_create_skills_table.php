@@ -14,10 +14,17 @@ return new class extends Migration
         Schema::create('skills', function (Blueprint $table) {
             $table->id();
             
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
+            // Nullable to support global/system skills (organization_id = null)
+            $table->foreignId('organization_id')->nullable()->constrained()->nullOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
-            
+            $table->enum('type', ['skill', 'course', 'degree']);
+            $table->enum('category', ['Soft Skills', 'Technical', 'Educational']);
+            // Default to true so a newly created skill (org-scoped) applies to all departments unless specified
+            $table->boolean("applies_to_all_departments")->default(true);
+            $table->foreignId('department_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('added_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->boolean("is_active")->default(true);
             // Uniqueness within organization
             $table->unique(['organization_id', 'name']);
             

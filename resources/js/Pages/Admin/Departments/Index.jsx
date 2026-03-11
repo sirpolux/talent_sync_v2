@@ -14,7 +14,7 @@ export default function Index({ departments }) {
     >
       <Head title="Departments" />
 
-      <div className="max-w-5xl space-y-4">
+      <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <Breadcrumbs
@@ -25,7 +25,7 @@ export default function Index({ departments }) {
             />
 
             <div>
-              <h1 className="text-xl font-semibold text-[#1E3A8A]">
+              <h1 className="text-2xl font-bold text-brand-primary">
                 Departments
               </h1>
               <p className="mt-1 text-sm text-slate-600">
@@ -41,13 +41,13 @@ export default function Index({ departments }) {
 
           <Link
             href={route("admin.departments.create")}
-            className="inline-flex items-center justify-center rounded-lg bg-[#1E3A8A] px-4 py-2 text-white font-semibold hover:opacity-95"
+            className="inline-flex items-center justify-center rounded-lg bg-brand-primary px-4 py-2 text-brand-primary-foreground font-semibold hover:opacity-95"
           >
-            Add Department
+            Create Department
           </Link>
         </div>
 
-        <div className="bg-white/90 backdrop-blur border border-white/30 shadow-sm rounded-2xl overflow-hidden">
+        <div className="bg-white rounded-lg border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-slate-50 text-slate-600">
@@ -79,7 +79,7 @@ export default function Index({ departments }) {
                       <td className="px-5 py-3 text-right">
                         <Link
                           href={route("admin.departments.show", d.id)}
-                          className="text-[#1E3A8A] font-semibold hover:underline"
+                          className="text-brand-primary font-semibold hover:underline"
                         >
                           View
                         </Link>
@@ -87,7 +87,7 @@ export default function Index({ departments }) {
                       <td className="px-5 py-3 text-right">
                         <Link
                           href={route("admin.departments.edit", d.id)}
-                          className="text-[#1E3A8A] font-semibold hover:underline"
+                          className="text-brand-primary font-semibold hover:underline"
                         >
                           Edit
                         </Link>

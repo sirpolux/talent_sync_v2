@@ -75,7 +75,7 @@ export default function Create() {
     >
       <Head title="Add Department" />
 
-      <div className="max-w-3xl space-y-4">
+      <div className="max-w-6xl space-y-6">
         <div className="space-y-2">
           <Breadcrumbs
             items={[
@@ -86,7 +86,7 @@ export default function Create() {
           />
 
           <div>
-            <h1 className="text-xl font-semibold text-[#1E3A8A]">
+            <h1 className="text-2xl font-bold text-brand-primary">
               Create department
             </h1>
             <p className="mt-1 text-sm text-slate-600">
@@ -100,17 +100,18 @@ export default function Create() {
           </div>
         </div>
 
-        <div className="bg-white/90 backdrop-blur border border-white/30 shadow-sm rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-200/60">
-            <div className="text-sm font-semibold text-slate-900">
-              Department details
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white rounded-xl border shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200/60">
+              <div className="text-sm font-semibold text-slate-900">
+                Department details
+              </div>
+              <div className="text-xs text-slate-600">
+                Use a clear name. Code is optional.
+              </div>
             </div>
-            <div className="text-xs text-slate-600">
-              Use a clear name. Code is optional.
-            </div>
-          </div>
 
-          <form onSubmit={submit} className="space-y-6 p-6">
+            <form onSubmit={submit} className="space-y-6 p-6">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="relative">
                 <InputLabel value="Department (select or type)" />
@@ -223,6 +224,39 @@ export default function Create() {
               <PrimaryButton disabled={processing}>Create department</PrimaryButton>
             </div>
           </form>
+          </div>
+
+          <aside className="bg-white rounded-xl border shadow-sm p-6 space-y-4">
+            <div>
+              <div className="text-sm font-semibold text-slate-900">Tips</div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Keep department names consistent (e.g. “Human Resources” vs “HR”) for cleaner reporting.
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-slate-50 border p-4">
+              <div className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                Suggested codes
+              </div>
+              <p className="mt-2 text-sm text-slate-700">
+                Use short codes like <span className="font-semibold">HR</span>, <span className="font-semibold">FIN</span>, <span className="font-semibold">ENG</span>.
+              </p>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <div className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                Preview
+              </div>
+              <div className="mt-2 text-sm">
+                <div className="font-medium text-slate-900">
+                  {data.name || "Department name..."}
+                </div>
+                <div className="text-muted-foreground">
+                  Code: {data.department_code || "—"}
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </AdminLayout>

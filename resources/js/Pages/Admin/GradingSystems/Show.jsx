@@ -38,34 +38,7 @@ export default function Show({ gradingSystem, breadcrumbs }) {
 
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            {/* <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href={route('admin.grading.index')}>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Grading Systems
-                </Link>
-              </Button>
-            </div> */}
 
-            <div className="flex gap-2">
-              <Button variant="outline" asChild>
-                <Link href={route('admin.grading.edit', gradingSystem.id)}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Link>
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href={route('admin.grading.edit', gradingSystem.id)}>
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Link>
-            </Button>
-          </div>
         </div>
 
         {/* Basic Information */}
@@ -231,7 +204,6 @@ export default function Show({ gradingSystem, breadcrumbs }) {
           </CardContent>
         </Card>
       </div>
-      
     </AdminLayout>
   );
 }

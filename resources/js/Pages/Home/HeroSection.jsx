@@ -9,13 +9,13 @@ export default function HeroSection() {
                 {/* LEFT CONTENT */}
                 <div>
 
-                    <span className="inline-block bg-indigo-100 text-indigo-600 px-4 py-1 rounded-full text-sm font-medium">
+                    <span className="inline-block bg-brand-secondary text-brand-primary px-4 py-1 rounded-full text-sm font-medium">
                         Training-Driven HR Platform
                     </span>
 
                     <h1 className="mt-6 text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                         Build a Workforce That
-                        <span className="text-indigo-600"> Grows With Your Organization</span>
+                        <span className="text-brand-primary"> Grows With Your Organization</span>
                     </h1>
 
                     <p className="mt-6 text-lg text-gray-600 max-w-xl">
@@ -27,7 +27,7 @@ export default function HeroSection() {
                     {/* CTA */}
                     <div className="mt-10 flex flex-wrap gap-4">
 
-                        <button className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
+                        <button className="flex items-center gap-2 bg-brand-primary text-brand-primary-foreground px-6 py-3 rounded-lg font-semibold hover:opacity-95 transition">
                             Start Free Trial
                             <ArrowRight size={18}/>
                         </button>
@@ -59,7 +59,7 @@ export default function HeroSection() {
                     </div>
 
                     {/* decorative gradient */}
-                    <div className="absolute -z-10 top-10 right-10 w-72 h-72 bg-indigo-200 rounded-full blur-3xl opacity-40"></div>
+                    <div className="absolute -z-10 top-10 right-10 w-72 h-72 bg-brand-secondary rounded-full blur-3xl opacity-40"></div>
 
                 </div>
 

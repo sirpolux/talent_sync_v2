@@ -21,6 +21,8 @@ export default {
                 ring: "hsl(var(--ring))",
                 background: "hsl(var(--background))",
                 foreground: "hsl(var(--foreground))",
+
+                // Existing shadcn-style semantic tokens
                 primary: {
                     DEFAULT: "hsl(var(--primary))",
                     foreground: "hsl(var(--primary-foreground))",
@@ -48,6 +50,26 @@ export default {
                 card: {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
+                },
+
+                // Brand aliases (use these in app code: text-brand-primary, bg-brand-primary, etc.)
+                brand: {
+                    primary: {
+                        DEFAULT: "hsl(var(--primary))",
+                        foreground: "hsl(var(--primary-foreground))",
+                    },
+                    secondary: {
+                        DEFAULT: "hsl(var(--secondary))",
+                        foreground: "hsl(var(--secondary-foreground))",
+                    },
+                    muted: {
+                        DEFAULT: "hsl(var(--muted))",
+                        foreground: "hsl(var(--muted-foreground))",
+                    },
+                    accent: {
+                        DEFAULT: "hsl(var(--accent))",
+                        foreground: "hsl(var(--accent-foreground))",
+                    },
                 },
             },
             borderRadius: {
