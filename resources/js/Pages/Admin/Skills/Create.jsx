@@ -183,7 +183,7 @@ export default function Create({ departments = [], breadcrumbs = [] }) {
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((d) => (
+                    {departments.data.map((d) => (
                       <SelectItem key={d.id} value={String(d.id)}>
                         {d.name}
                       </SelectItem>

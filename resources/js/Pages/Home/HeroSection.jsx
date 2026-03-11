@@ -48,10 +48,10 @@ export default function HeroSection() {
                 {/* RIGHT CONTENT (PRODUCT PREVIEW) */}
                 <div className="relative">
 
-                    <div className="bg-white shadow-xl rounded-xl border p-4">
+                    <div className="p-4">
 
                         <img
-                            src="/img/talent_sync_hero.jpg"
+                            src="/img/Talent_Sync_hero_Img.svg"
                             alt="TalentSync Dashboard"
                             className="rounded-lg"
                         />

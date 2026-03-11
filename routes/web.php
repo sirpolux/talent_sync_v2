@@ -72,7 +72,26 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     // ============================================
     Route::name('admin.')->prefix('admin')->group(function() {
         Route::resource('skills', AdminSkillController::class);
-        Route::resource('competencies', AdminCompetencyController::class);
+        Route::resource('competencies', AdminCompetencyController::class)->only(['index']);
+
+        Route::get('competencies/departments/{department}', [AdminCompetencyController::class, 'department'])
+            ->name('competencies.department');
+
+        Route::get('competencies/positions/{position}', [AdminCompetencyController::class, 'position'])
+            ->name('competencies.position');
+
+        Route::post('competencies/department', [AdminCompetencyController::class, 'storeDepartment'])
+            ->name('competencies.department.store');
+
+        Route::patch('competencies/department/{departmentCompetency}', [AdminCompetencyController::class, 'updateDepartment'])
+            ->name('competencies.department.update');
+
+        Route::post('competencies/position', [AdminCompetencyController::class, 'storePosition'])
+            ->name('competencies.position.store');
+
+        Route::patch('competencies/position/{positionCompetency}', [AdminCompetencyController::class, 'updatePosition'])
+            ->name('competencies.position.update');
+
         Route::resource('grading', AdminGradingSystemController::class);
         Route::resource('assessments', AdminAssessmentController::class);
 
