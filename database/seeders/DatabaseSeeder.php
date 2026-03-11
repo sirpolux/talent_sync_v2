@@ -18,6 +18,9 @@ class DatabaseSeeder extends Seeder
         // Seed system-wide grading systems first
         $this->call(GradingSystemSeeder::class);
 
+        // Seed system-wide skills
+        $this->call(GlobalSkillsSeeder::class);
+
         // User::factory(10)->create();
 
         User::factory()->create([
