@@ -233,11 +233,20 @@ class PositionService implements PositionServiceInterface
      * @param int $perPage
      * @return array
      */
-    public function getPaginatedPositions(int $organizationId, ?string $search = null, int $page = 1, int $perPage = 15): array
-    {
+    public function getPaginatedPositions(
+        int $organizationId,
+        ?string $search = null,
+        int $page = 1,
+        int $perPage = 15,
+        ?int $departmentId = null
+    ): array {
         $query = Position::query()
             ->where('organization_id', $organizationId)
             ->with(['department', 'organization']);
+
+        if ($departmentId !== null) {
+            $query->where('department_id', $departmentId);
+        }
 
         if ($search) {
             $query->where('name', 'like', '%' . $search . '%');

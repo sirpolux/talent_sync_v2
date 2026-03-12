@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -17,6 +18,13 @@ class Department extends Model
         'added_by',
         'roles_count',
         'staff_count',
+        'is_active',
+        'deactivated_at',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'deactivated_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -26,6 +34,16 @@ class Department extends Model
             // handle collisions in a predictable way.
             // Keep this model hook intentionally empty.
         });
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeInactive(Builder $query): Builder
+    {
+        return $query->where('is_active', false);
     }
 
     public function organization(): BelongsTo

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
+use App\Services\PositionService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,9 @@ use Inertia\Response;
 
 class AdminDepartmentController extends Controller
 {
+    public function __construct(
+        protected PositionService $positionService
+    ) {}
     public function index(Request $request): Response
     {
         $orgId = (int) $request->session()->get('current_organization_id');
@@ -155,9 +159,26 @@ class AdminDepartmentController extends Controller
 
         abort_unless($department->organization_id === $orgId, 404);
 
-        $department->delete();
+        $department->update([
+            'is_active' => false,
+            'deactivated_at' => now(),
+        ]);
 
-        return redirect()->route('admin.departments.index')->with('status', 'Department deleted.');
+        return redirect()->route('admin.departments.show', $department)->with('status', 'Department deactivated.');
+    }
+
+    public function activate(Request $request, Department $department): RedirectResponse
+    {
+        $orgId = (int) $request->session()->get('current_organization_id');
+
+        abort_unless($department->organization_id === $orgId, 404);
+
+        $department->update([
+            'is_active' => true,
+            'deactivated_at' => null,
+        ]);
+
+        return redirect()->route('admin.departments.show', $department)->with('status', 'Department activated.');
     }
 
     public function show(Request $request, Department $department): Response
@@ -165,6 +186,18 @@ class AdminDepartmentController extends Controller
         $orgId = (int) $request->session()->get('current_organization_id');
 
         abort_unless($department->organization_id === $orgId, 404);
+
+        $search = $request->input('positions_search');
+        $page = (int) $request->input('positions_page', 1);
+        $perPage = (int) $request->input('positions_per_page', 10);
+
+        $positionsResult = $this->positionService->getPaginatedPositions(
+            organizationId: $orgId,
+            search: $search,
+            page: $page,
+            perPage: $perPage,
+            departmentId: $department->id
+        );
 
         return Inertia::render('Admin/Departments/Show', [
             'department' => $department->only([
@@ -176,7 +209,12 @@ class AdminDepartmentController extends Controller
                 'roles_count',
                 'staff_count',
                 'created_at',
+                'is_active',
+                'deactivated_at',
             ]),
+            'positions' => $positionsResult['data'],
+            'positionsPagination' => $positionsResult['pagination'],
+            'positionsSearch' => $search,
         ]);
     }   
 }

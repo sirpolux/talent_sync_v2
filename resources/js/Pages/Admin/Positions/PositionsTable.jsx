@@ -1,17 +1,24 @@
 import { Link } from "@inertiajs/react";
 import { useState } from "react";
 
-export default function PositionsTable({ positions, search, pagination }) {
+export default function PositionsTable({
+    positions,
+    search,
+    pagination,
+    searchParam = "search",
+    pageParam = "page",
+    totalLabel = "positions",
+}) {
     const [searchTerm, setSearchTerm] = useState(search || "");
 
     const handleSearch = () => {
         const url = new URL(window.location);
         if (searchTerm.trim()) {
-            url.searchParams.set('search', searchTerm);
+            url.searchParams.set(searchParam, searchTerm);
         } else {
-            url.searchParams.delete('search');
+            url.searchParams.delete(searchParam);
         }
-        url.searchParams.set('page', 1);
+        url.searchParams.set(pageParam, 1);
         window.location.href = url.toString();
     };
 
@@ -24,16 +31,16 @@ export default function PositionsTable({ positions, search, pagination }) {
     const handleClearSearch = () => {
         setSearchTerm("");
         const url = new URL(window.location);
-        url.searchParams.delete('search');
-        url.searchParams.set('page', 1);
+        url.searchParams.delete(searchParam);
+        url.searchParams.set(pageParam, 1);
         window.location.href = url.toString();
     };
 
     const handlePageChange = (page) => {
         const url = new URL(window.location);
-        url.searchParams.set('page', page);
+        url.searchParams.set(pageParam, page);
         if (search) {
-            url.searchParams.set('search', search);
+            url.searchParams.set(searchParam, search);
         }
         window.location.href = url.toString();
     };
@@ -111,7 +118,7 @@ export default function PositionsTable({ positions, search, pagination }) {
                 )}
 
                 <div className="text-sm text-slate-600">
-                    {pagination?.total || 0} position{pagination?.total !== 1 ? 's' : ''}
+                    {pagination?.total || 0} {totalLabel}
                 </div>
             </div>
 

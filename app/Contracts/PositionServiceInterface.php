@@ -49,5 +49,11 @@ interface PositionServiceInterface
     /**
      * Get paginated positions for display
      */
-    public function getPaginatedPositions(int $organizationId, ?string $search = null, int $page = 1, int $perPage = 15): array;
+    public function getPaginatedPositions(
+        int $organizationId,
+        ?string $search = null,
+        int $page = 1,
+        int $perPage = 15,
+        ?int $departmentId = null
+    ): array;
 }

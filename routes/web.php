@@ -96,6 +96,8 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         Route::resource('assessments', AdminAssessmentController::class);
 
         Route::resource('departments', AdminDepartmentController::class);
+        Route::patch('departments/{department}/activate', [AdminDepartmentController::class, 'activate'])
+            ->name('departments.activate');
 
 
         // ============================================
