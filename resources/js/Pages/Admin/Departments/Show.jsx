@@ -3,11 +3,17 @@ import { Head, Link } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
 import Breadcrumbs from "@/Components/Breadcrumbs";
 import { Button } from "@/Components/ui/button";
+import PositionsTable from "@/Pages/Admin/Positions/PositionsTable";
 
-export default function Show({ department }) {
+export default function Show({
+  department,
+  positions = [],
+  positionsPagination = null,
+  positionsSearch = "",
+}) {
   const crumbs = [
-    { label: "Admin", href: route("admin.dashboard") },
-    { label: "Departments", href: route("admin.departments.index") },
+    { label: "Admin", href: "admin.dashboard"},
+    { label: "Departments", href: "admin.departments.index" },
     { label: department?.name ?? "Department" },
   ];
 
@@ -104,6 +110,27 @@ export default function Show({ department }) {
           <p className="mt-2 whitespace-pre-wrap text-slate-700">
             {department?.description ?? "—"}
           </p>
+        </div>
+
+        <div className="rounded-lg border border-slate-200 bg-white p-5 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold text-slate-900">Positions</h2>
+            <Link
+              href={route("admin.positions.create")}
+              className="text-sm font-semibold text-[#1E3A8A] hover:underline"
+            >
+              Add Position
+            </Link>
+          </div>
+
+          <PositionsTable
+            positions={positions}
+            search={positionsSearch}
+            pagination={positionsPagination}
+            searchParam="positions_search"
+            pageParam="positions_page"
+            totalLabel="positions"
+          />
         </div>
 
         <div className="flex">

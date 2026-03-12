@@ -21,6 +21,8 @@ use App\Http\Controllers\AdminRoleController;
 use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\AdminAdminController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OrganizationInvitationController;
+use App\Http\Controllers\GeoController;
 use App\Http\Controllers\OrganizationSelectionController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
@@ -48,7 +50,22 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     // Company & Organization Setup
     Route::get('/admin/company', [AdminOrganizationController::class, 'show'])->name('admin.company.show');
     Route::get('/admin/company/edit', [AdminOrganizationController::class, 'edit'])->name('admin.company.edit');
-    Route::patch('/admin/company/edit', [AdminOrganizationController::class, 'update'])->name('admin.company.update');
+
+    // Sectioned updates (split to avoid partial updates missing fields)
+    Route::patch('/admin/company/edit/company', [AdminOrganizationController::class, 'updateCompanyData'])
+        ->name('admin.company.update.company');
+
+    Route::patch('/admin/company/edit/address', [AdminOrganizationController::class, 'updateCompanyAddress'])
+        ->name('admin.company.update.address');
+
+    Route::patch('/admin/company/edit/stats', [AdminOrganizationController::class, 'updateCompanyStats'])
+        ->name('admin.company.update.stats');
+
+    Route::patch('/admin/company/edit/access', [AdminOrganizationController::class, 'updateCompanyAccess'])
+        ->name('admin.company.update.access');
+
+    Route::patch('/admin/company/edit/compliance', [AdminOrganizationController::class, 'updateCompanyCompliance'])
+        ->name('admin.company.update.compliance');
 
     // Departments
     // Route::get('/admin/departments', [AdminDepartmentController::class, 'index'])->name('admin.departments.index');
@@ -153,8 +170,16 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
 });
 
 Route::middleware('auth')->group(function () {
+    // Geo endpoints for dropdowns (countries + states)
+    Route::get('/api/geo/countries', [GeoController::class, 'countries'])->name('api.geo.countries');
+    Route::get('/api/geo/states', [GeoController::class, 'states'])->name('api.geo.states');
+
     Route::get('/org/select', [OrganizationSelectionController::class, 'index'])->name('org.select');
     Route::post('/org/set-current', [OrganizationSelectionController::class, 'setCurrent'])->name('org.set-current');
+
+    // Accept org invitation (must be logged in as the invited email)
+    Route::get('/org/invitations/{token}/accept', [OrganizationInvitationController::class, 'accept'])
+        ->name('org.invitations.accept');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

@@ -46,15 +46,11 @@ export default function Create({ departments = [], breadcrumbs = [] }) {
 
       <div className="max-w-6xl space-y-6">
         <Breadcrumbs
-          items={
-            breadcrumbs.length
-              ? breadcrumbs
-              : [
-                  { label: "Admin", href: "admin.dashboard" },
-                  { label: "Skills", href: "admin.skills.index" },
-                  { label: "Create" },
-                ]
-          }
+          items={[
+            { label: "Admin", href: "admin.dashboard" },
+            { label: "Skills", href: "admin.skills.index" },
+            { label: "Create" },
+          ]}
         />
 
         <div className="flex items-start justify-between gap-4">

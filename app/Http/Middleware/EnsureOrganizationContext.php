@@ -16,8 +16,8 @@ class EnsureOrganizationContext
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Allow org selection endpoints even when org context isn't set yet
-        if ($request->routeIs('org.select', 'org.set-current')) {
+        // Allow org selection + invitation acceptance even when org context isn't set yet
+        if ($request->routeIs('org.select', 'org.set-current', 'org.invitations.accept')) {
             return $next($request);
         }
 

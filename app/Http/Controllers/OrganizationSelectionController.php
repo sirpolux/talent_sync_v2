@@ -31,14 +31,16 @@ class OrganizationSelectionController extends Controller
         $user = $request->user();
         $orgId = (int) $request->input('organization_id');
 
-        $isMember = $user->organizations()->whereKey($orgId)->exists();
+        $membership = $user->organizations()->whereKey($orgId)->first()?->pivot;
 
-        abort_unless($isMember, 403);
+        abort_unless($membership, 403);
+
+        // Enforce org-level membership confirmation (Option B)
+        abort_unless($membership->membership_status === 'active', 403);
 
         $request->session()->put('current_organization_id', $orgId);
 
         // After org is selected, redirect based on membership role.
-        $membership = $user->organizations()->whereKey($orgId)->first()?->pivot;
 
         if ($membership && !empty($membership->is_org_admin)) {
             return redirect()->route('admin.dashboard');

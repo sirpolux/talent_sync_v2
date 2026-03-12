@@ -216,7 +216,7 @@ export default function AdminLayout({
             children: [
               { key: "setup.departments", label: "Departments", href: "admin.departments.index" },
               { key: "setup.positions", label: "Positions", href: "admin.positions.index" },
-              { key: "setup.roles", label: "Roles", href: "admin.roles.index" },
+              // { key: "setup.roles", label: "Roles", href: "admin.roles.index" },
             ],
           },
           {
@@ -568,7 +568,9 @@ export default function AdminLayout({
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 relative bg-[url('/img/dashboard_bg.jpg')] bg-cover bg-center">
+          {/* <main className="flex-1 overflow-y-scroll h-screen p-4 sm:p-6 relative bg-[url('/img/talent_sync_hero_img.sv')] bg-cover bg-center"> */}
+          <main className="flex-1 overflow-y-scroll h-screen p-4 sm:p-6 relative bg-gray-50 bg-cover bg-center">
+           
             <div className="absolute inset-0 bg-white/75 backdrop-blur-sm"></div>
             <div className="relative z-10">{children}</div>
           </main>

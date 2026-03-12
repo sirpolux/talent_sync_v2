@@ -61,10 +61,19 @@ class Position extends Model
                 'can_manage_reporting',
                 'employee_code',
                 'phone',
-                'category',
+                'employment_type',
+                'work_mode',
+                'employment_date',
+                'onboarding_stage',
+                'gender',
+                'nationality',
+                'state',
                 'department_id',
-                'role_started_at',
+                'date_started_current_position',
                 'manager_user_id',
+                'membership_status',
+                'membership_confirmed_at',
+                'membership_confirmed_by_user_id',
             ])
             ->withTimestamps();
     }

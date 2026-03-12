@@ -112,9 +112,8 @@ class AdminPositionController extends Controller
         // Verify position belongs to current organization
         abort_unless($position->organization_id === $orgId, 404);
 
-        // TODO: Load related data (department, role, reporting position, users assigned, etc.)
         return Inertia::render('Admin/Positions/Show', [
-            'position' => $position->load(['department', 'organization']),
+            'position' => $position->load(['department']),
         ]);
     }
 

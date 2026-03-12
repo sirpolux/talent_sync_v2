@@ -44,7 +44,7 @@ export default function Edit({ skill, departments = [] }) {
             items={[
               { label: "Admin", href: "admin.dashboard" },
               { label: "Skills", href: "admin.skills.index" },
-              { label: s?.name || "Skill", href: "admin.skills.show" , params:s.id},
+              { label: s?.name || "Skill", href: "admin.skills.show", params: s.id },
               { label: "Edit" },
             ]}
           />
