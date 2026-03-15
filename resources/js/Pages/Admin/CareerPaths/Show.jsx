@@ -78,6 +78,15 @@ export default function Show({ path, steps = [] }) {
                                 )}
                             </div>
 
+                            <div className="mt-1 text-xs text-slate-500">
+                                Department scope:{" "}
+                                <span className="font-semibold text-slate-700">
+                                    {path?.department_id
+                                        ? path?.department_name || "Selected department"
+                                        : "All departments"}
+                                </span>
+                            </div>
+
                             {flash?.status ? (
                                 <div className="mt-2 text-sm font-medium text-emerald-700">
                                     {flash.status}

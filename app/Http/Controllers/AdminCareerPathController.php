@@ -10,6 +10,7 @@ use App\Models\Department;
 use App\Models\Position;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -62,6 +63,38 @@ class AdminCareerPathController extends Controller
         ]);
     }
 
+    private function assertStepsMatchDepartmentScope(int $orgId, ?int $departmentId, array $steps): void
+    {
+        if ($departmentId === null || count($steps) === 0) {
+            return;
+        }
+
+        $positionIds = collect($steps)
+            ->flatMap(fn ($s) => [(int) $s['from_position_id'], (int) $s['to_position_id']])
+            ->unique()
+            ->values();
+
+        $positions = Position::query()
+            ->where('organization_id', $orgId)
+            ->whereIn('id', $positionIds)
+            ->get(['id', 'department_id'])
+            ->keyBy('id');
+
+        foreach ($positionIds as $pid) {
+            if (! $positions->has($pid)) {
+                throw ValidationException::withMessages([
+                    'steps' => ['One or more positions are invalid.'],
+                ]);
+            }
+
+            if ((int) $positions[$pid]->department_id !== $departmentId) {
+                throw ValidationException::withMessages([
+                    'steps' => ['All steps must use positions within the selected department.'],
+                ]);
+            }
+        }
+    }
+
     public function store(StoreCareerPathRequest $request): RedirectResponse
     {
         $orgId = (int) session('current_organization_id');
@@ -70,15 +103,18 @@ class AdminCareerPathController extends Controller
         /** @var CareerPath $path */
         $path = CareerPath::make();
 
-        DB::transaction(function () use ($orgId, $data, &$path) {
+        $steps = $data['steps'] ?? [];
+        $this->assertStepsMatchDepartmentScope($orgId, $data['department_id'] ?? null, $steps);
+
+        DB::transaction(function () use ($orgId, $data, &$path, $steps) {
             $path = CareerPath::create([
                 'organization_id' => $orgId,
+                'department_id' => $data['department_id'] ?? null,
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
                 'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : true,
             ]);
 
-            $steps = $data['steps'] ?? [];
             foreach ($steps as $step) {
                 CareerPathStep::create([
                     'organization_id' => $orgId,
@@ -102,7 +138,7 @@ class AdminCareerPathController extends Controller
 
         $path = CareerPath::query()
             ->where('organization_id', $orgId)
-            ->with(['steps.fromPosition:id,name', 'steps.toPosition:id,name'])
+            ->with(['department:id,name', 'steps.fromPosition:id,name', 'steps.toPosition:id,name'])
             ->findOrFail($id);
 
         $steps = $path->steps
@@ -121,6 +157,8 @@ class AdminCareerPathController extends Controller
         return Inertia::render('Admin/CareerPaths/Show', [
             'path' => [
                 'id' => $path->id,
+                'department_id' => $path->department_id,
+                'department_name' => $path->department?->name,
                 'name' => $path->name,
                 'description' => $path->description,
                 'is_active' => (bool) $path->is_active,
@@ -138,16 +176,25 @@ class AdminCareerPathController extends Controller
             ->with('steps')
             ->findOrFail($id);
 
+        $departments = Department::query()
+            ->where('organization_id', $orgId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Department $d) => ['id' => $d->id, 'name' => $d->name])
+            ->values();
+
         $positions = Position::query()
             ->where('organization_id', $orgId)
             ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Position $p) => ['id' => $p->id, 'name' => $p->name])
+            ->get(['id', 'name', 'department_id'])
+            ->map(fn (Position $p) => ['id' => $p->id, 'name' => $p->name, 'department_id' => $p->department_id])
             ->values();
 
         return Inertia::render('Admin/CareerPaths/Edit', [
             'path' => [
                 'id' => $path->id,
+                'department_id' => $path->department_id,
                 'name' => $path->name,
                 'description' => $path->description,
                 'is_active' => (bool) $path->is_active,
@@ -162,6 +209,7 @@ class AdminCareerPathController extends Controller
                     'track' => $s->track,
                     'order' => $s->order,
                 ]),
+            'departments' => $departments,
             'positions' => $positions,
         ]);
     }
@@ -176,8 +224,12 @@ class AdminCareerPathController extends Controller
             ->where('organization_id', $orgId)
             ->findOrFail($id);
 
-        DB::transaction(function () use ($orgId, $data, $path) {
+        $steps = $data['steps'] ?? [];
+        $this->assertStepsMatchDepartmentScope($orgId, $data['department_id'] ?? null, $steps);
+
+        DB::transaction(function () use ($orgId, $data, $path, $steps) {
             $path->update([
+                'department_id' => $data['department_id'] ?? null,
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
                 'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : $path->is_active,
@@ -189,7 +241,6 @@ class AdminCareerPathController extends Controller
                     ->where('career_path_id', $path->id)
                     ->delete();
 
-                $steps = $data['steps'] ?? [];
                 foreach ($steps as $step) {
                     CareerPathStep::create([
                         'organization_id' => $orgId,

@@ -10,22 +10,36 @@ function emptyStep() {
     return { from_position_id: "", to_position_id: "", track: "", order: "" };
 }
 
-export default function Create({ positions = [] }) {
+export default function Create({ departments = [], positions = [] }) {
     const { errors } = usePage().props;
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [isActive, setIsActive] = useState(true);
+    const [departmentId, setDepartmentId] = useState("");
     const [steps, setSteps] = useState([emptyStep()]);
     const [saving, setSaving] = useState(false);
 
-    const positionOptions = useMemo(
+    const departmentOptions = useMemo(
         () =>
-            (positions || [])
-                .map((p) => ({ id: p.id, name: p.name }))
+            (departments || [])
+                .map((d) => ({ id: d.id, name: d.name }))
                 .sort((a, b) => (a.name || "").localeCompare(b.name || "")),
-        [positions]
+        [departments]
     );
+
+    const positionOptions = useMemo(() => {
+        const filtered =
+            departmentId === ""
+                ? (positions || [])
+                : (positions || []).filter(
+                      (p) => String(p.department_id ?? "") === String(departmentId)
+                  );
+
+        return filtered
+            .map((p) => ({ id: p.id, name: p.name }))
+            .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    }, [positions, departmentId]);
 
     const addStep = () => setSteps((prev) => [...prev, emptyStep()]);
     const removeStep = (idx) =>
@@ -41,6 +55,7 @@ export default function Create({ positions = [] }) {
         setSaving(true);
 
         const payload = {
+            department_id: departmentId === "" ? null : Number(departmentId),
             name,
             description: description || null,
             is_active: isActive,
@@ -108,6 +123,26 @@ export default function Create({ positions = [] }) {
                                     placeholder="Optional"
                                 />
                                 <InputError message={errors?.description} className="mt-2" />
+                            </div>
+
+                            <div>
+                                <InputLabel value="Department (scope)" />
+                                <select
+                                    className="mt-1 w-full rounded-lg border-slate-200"
+                                    value={departmentId}
+                                    onChange={(e) => setDepartmentId(e.target.value)}
+                                >
+                                    <option value="">All departments</option>
+                                    {departmentOptions.map((d) => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p className="mt-1 text-xs text-slate-500">
+                                    If you pick a department, all steps must stay within that department.
+                                </p>
+                                <InputError message={errors?.department_id} className="mt-2" />
                             </div>
 
                             <label className="inline-flex items-center gap-2 text-sm text-slate-700">
