@@ -187,7 +187,17 @@ class AdminCompetencyController extends Controller
             ->get();
 
         $skills = Skill::query()
-            ->where('organization_id', $orgId)
+            ->where('is_active', true)
+            ->where(function (Builder $q) use ($orgId) {
+                // system-wide or owned by org
+                $q->whereNull('organization_id')
+                    ->orWhere('organization_id', $orgId);
+            })
+            ->where(function (Builder $q) use ($position) {
+                // applies to all departments OR tied to this position's department
+                $q->where('applies_to_all_departments', true)
+                    ->orWhere('department_id', $position->department_id);
+            })
             ->orderBy('name')
             ->get(['id', 'name']);
 
@@ -294,9 +304,33 @@ class AdminCompetencyController extends Controller
     {
         $orgId = (int) $request->session()->get('current_organization_id');
 
+        $positionId = (int) $request->input('position_id');
+
         $data = $request->validate([
             'position_id' => ['required', 'integer', Rule::exists('positions', 'id')->where('organization_id', $orgId)],
-            'skill_id' => ['required', 'integer', Rule::exists('skills', 'id')->where('organization_id', $orgId)],
+            'skill_id' => [
+                'required',
+                'integer',
+                Rule::exists('skills', 'id')->where(function ($q) use ($orgId, $positionId) {
+                    // Allow global skills + org skills, and ensure skill applies to the position's department.
+                    $position = Position::query()
+                        ->where('organization_id', $orgId)
+                        ->where('id', $positionId)
+                        ->first(['id', 'department_id']);
+
+                    abort_unless($position, 404);
+
+                    $q->where(function ($ownedQ) use ($orgId) {
+                        $ownedQ->whereNull('organization_id')
+                            ->orWhere('organization_id', $orgId);
+                    });
+
+                    $q->where(function ($deptQ) use ($position) {
+                        $deptQ->where('applies_to_all_departments', true)
+                            ->orWhere('department_id', $position->department_id);
+                    });
+                }),
+            ],
             'must_have' => ['required', 'boolean'],
             'grading_system_id' => ['required', 'integer', 'exists:grading_systems,id'],
             'grade_id' => [

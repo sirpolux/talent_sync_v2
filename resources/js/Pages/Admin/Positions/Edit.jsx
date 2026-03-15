@@ -6,18 +6,24 @@ import PrimaryButton from "@/Components/PrimaryButton";
 import TextInput from "@/Components/TextInput";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 
-export default function Create({ departments, positions, levels, durationTypes }) {
+export default function Edit({
+    position,
+    departments,
+    positions,
+    levels,
+    durationTypes,
+}) {
     const { flash } = usePage().props;
 
-    const { data, setData, post, processing, errors } = useForm({
-        name: "",
-        department_id: "",
-        responsibilities: "",
-        level: "",
-        min_months_in_role: "",
-        duration_before_promotion: "",
-        duration_before_promotion_type: "",
-        reports_to_position_id: "",
+    const { data, setData, patch, processing, errors } = useForm({
+        name: position?.name ?? "",
+        department_id: position?.department_id ?? "",
+        responsibilities: position?.responsibilities ?? "",
+        level: position?.level ?? "",
+        min_months_in_role: position?.min_months_in_role ?? "",
+        duration_before_promotion: position?.duration_before_promotion ?? "",
+        duration_before_promotion_type: position?.duration_before_promotion_type ?? "",
+        reports_to_position_id: position?.reports_to_position_id ?? "",
     });
 
     const departmentSelected = !!data.department_id;
@@ -32,6 +38,9 @@ export default function Create({ departments, positions, levels, durationTypes }
     const reportingOptions = (positions ?? []).filter((p) => {
         if (!p?.id) return false;
 
+        // prevent self-reporting option
+        if (String(p.id) === String(position?.id)) return false;
+
         // If no department is selected: only allow Manager/Director positions.
         if (!departmentSelected) {
             return managementLevelsNoDept.has(p.level);
@@ -40,20 +49,24 @@ export default function Create({ departments, positions, levels, durationTypes }
         // If department is selected:
         // - same department, OR
         // - management levels (senior/lead/manager/director) across org.
-        const sameDepartment = String(p.department_id ?? "") === String(data.department_id);
+        const sameDepartment =
+            String(p.department_id ?? "") === String(data.department_id);
         const isManagement = managementLevelsAll.has(p.level);
 
         return sameDepartment || isManagement;
     });
 
-    // If department is cleared, enforce leadership-only level and clear invalid reports-to.
     const onDepartmentChange = (deptId) => {
         setData((prev) => {
             const next = { ...prev, department_id: deptId };
 
             if (!deptId) {
                 // leadership-only levels
-                if (next.level && next.level !== "manager" && next.level !== "director") {
+                if (
+                    next.level &&
+                    next.level !== "manager" &&
+                    next.level !== "director"
+                ) {
                     next.level = "";
                 }
 
@@ -85,17 +98,17 @@ export default function Create({ departments, positions, levels, durationTypes }
 
     const submit = (e) => {
         e.preventDefault();
-        post(route("admin.positions.store"));
+        patch(route("admin.positions.update", position.id));
     };
 
     return (
         <AdminLayout
-            headerTitle="Add Position"
+            headerTitle="Edit Position"
             tabName="Organization"
             openedMenu="org"
             activeSubmenu="org.positions"
         >
-            <Head title="Add Position" />
+            <Head title="Edit Position" />
 
             <div className="max-w-4xl space-y-4">
                 <div className="space-y-2">
@@ -103,16 +116,16 @@ export default function Create({ departments, positions, levels, durationTypes }
                         items={[
                             { label: "Admin", href: "admin.dashboard" },
                             { label: "Positions", href: "admin.positions.index" },
-                            { label: "Create" },
+                            { label: "Edit" },
                         ]}
                     />
 
                     <div>
                         <h1 className="text-xl font-semibold text-[#1E3A8A]">
-                            Create position
+                            Edit position
                         </h1>
                         <p className="mt-1 text-sm text-slate-600">
-                            Positions are scoped to the current organization.
+                            Update position details for the current organization.
                         </p>
                         {flash?.status ? (
                             <div className="mt-2 text-sm font-medium text-emerald-700">
@@ -128,7 +141,7 @@ export default function Create({ departments, positions, levels, durationTypes }
                             Position details
                         </div>
                         <div className="text-xs text-slate-600">
-                            Define the position requirements and responsibilities.
+                            Edit the position requirements and responsibilities.
                         </div>
                     </div>
 
@@ -159,13 +172,15 @@ export default function Create({ departments, positions, levels, durationTypes }
                                     {departments?.map((dept) => (
                                         <option key={dept.id} value={dept.id}>
                                             {dept.name}{" "}
-                                            {dept.department_code && `(${dept.department_code})`}
+                                            {dept.department_code &&
+                                                `(${dept.department_code})`}
                                         </option>
                                     ))}
                                 </select>
                                 <InputError message={errors.department_id} className="mt-2" />
                                 <div className="mt-1 text-xs text-slate-500">
-                                    Tip: Leave department empty for organization-wide leadership roles (Manager/Director only).
+                                    Tip: Leave department empty for organization-wide leadership roles
+                                    (Manager/Director only).
                                 </div>
                             </div>
 
@@ -180,15 +195,16 @@ export default function Create({ departments, positions, levels, durationTypes }
                                     <option value="">Select level</option>
                                     {allowedLevels?.map((level) => (
                                         <option key={level} value={level}>
-                                            {level.charAt(0).toUpperCase() + level.slice(1)}
+                                            {level.charAt(0).toUpperCase() +
+                                                level.slice(1)}
                                         </option>
                                     ))}
                                 </select>
                                 <InputError message={errors.level} className="mt-2" />
                                 {!departmentSelected ? (
                                     <div className="mt-1 text-xs text-slate-500">
-                                        No department selected: this is treated as an organization-wide leadership
-                                        role (Manager/Director only).
+                                        No department selected: this is treated as an organization-wide
+                                        leadership role (Manager/Director only).
                                     </div>
                                 ) : (
                                     <div className="mt-1 text-xs text-slate-500">
@@ -204,7 +220,9 @@ export default function Create({ departments, positions, levels, durationTypes }
                                     type="number"
                                     className="mt-1 block w-full"
                                     value={data.min_months_in_role}
-                                    onChange={(e) => setData("min_months_in_role", e.target.value)}
+                                    onChange={(e) =>
+                                        setData("min_months_in_role", e.target.value)
+                                    }
                                     min="0"
                                     placeholder="e.g. 12"
                                 />
@@ -222,7 +240,9 @@ export default function Create({ departments, positions, levels, durationTypes }
                                 className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 rows={4}
                                 value={data.responsibilities}
-                                onChange={(e) => setData("responsibilities", e.target.value)}
+                                onChange={(e) =>
+                                    setData("responsibilities", e.target.value)
+                                }
                                 placeholder="Describe the main responsibilities and duties for this position..."
                             />
                             <InputError message={errors.responsibilities} className="mt-2" />
@@ -241,11 +261,19 @@ export default function Create({ departments, positions, levels, durationTypes }
                                         type="number"
                                         className="mt-1 block w-full"
                                         value={data.duration_before_promotion}
-                                        onChange={(e) => setData("duration_before_promotion", e.target.value)}
+                                        onChange={(e) =>
+                                            setData(
+                                                "duration_before_promotion",
+                                                e.target.value
+                                            )
+                                        }
                                         min="1"
                                         placeholder="e.g. 18"
                                     />
-                                    <InputError message={errors.duration_before_promotion} className="mt-2" />
+                                    <InputError
+                                        message={errors.duration_before_promotion}
+                                        className="mt-2"
+                                    />
                                 </div>
 
                                 <div>
@@ -263,7 +291,8 @@ export default function Create({ departments, positions, levels, durationTypes }
                                         <option value="">Select type</option>
                                         {durationTypes?.map((type) => (
                                             <option key={type} value={type}>
-                                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                                                {type.charAt(0).toUpperCase() +
+                                                    type.slice(1)}
                                             </option>
                                         ))}
                                     </select>
@@ -290,16 +319,14 @@ export default function Create({ departments, positions, levels, durationTypes }
                                         ? "Select a Manager/Director (optional)"
                                         : "Select reporting position (optional)"}
                                 </option>
-                                {reportingOptions?.map((position) => (
-                                    <option key={position.id} value={position.id}>
-                                        {position.name} ({position.level})
+                                {reportingOptions?.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.name} ({p.level})
                                     </option>
                                 ))}
                             </select>
                             <InputError
-                                message={
-                                    errors.reports_to_position_id || errors.reports_to
-                                }
+                                message={errors.reports_to_position_id || errors.reports_to}
                                 className="mt-2"
                             />
                             <div className="mt-1 text-xs text-slate-500">
@@ -318,7 +345,7 @@ export default function Create({ departments, positions, levels, durationTypes }
                                 Cancel
                             </Link>
                             <PrimaryButton disabled={processing}>
-                                {processing ? "Creating..." : "Create position"}
+                                {processing ? "Saving..." : "Save changes"}
                             </PrimaryButton>
                         </div>
                     </form>

@@ -295,7 +295,7 @@ export default function AdminLayout({
           {
             key: "careers.paths",
             label: "Career Paths",
-            href: "admin.transitions.index",
+            href: "admin.career-paths.index",
           },
           {
             key: "careers.hierarchies",

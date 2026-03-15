@@ -44,7 +44,7 @@ class PositionService implements PositionServiceInterface
                 'role_id',
                 'duration_before_promotion',
                 'duration_before_promotion_type',
-                'reports_to',
+                'reports_to_position_id',
                 'added_by',
                 'created_at',
             ]);
@@ -82,7 +82,7 @@ class PositionService implements PositionServiceInterface
                 'role_id',
                 'duration_before_promotion',
                 'duration_before_promotion_type',
-                'reports_to',
+                'reports_to_position_id',
                 'added_by',
                 'created_at',
             ]);
@@ -132,7 +132,7 @@ class PositionService implements PositionServiceInterface
                 'role_id' => $data['role_id'] ?? null,
                 'duration_before_promotion' => $data['duration_before_promotion'] ?? null,
                 'duration_before_promotion_type' => $data['duration_before_promotion_type'] ?? null,
-                'reports_to' => $data['reports_to'] ?? null,
+                'reports_to_position_id' => $data['reports_to_position_id'] ?? null,
                 'added_by' => $userId,
             ]);
         } catch (QueryException $e) {
@@ -238,13 +238,15 @@ class PositionService implements PositionServiceInterface
         ?string $search = null,
         int $page = 1,
         int $perPage = 15,
-        ?int $departmentId = null
+        int|string|null $departmentId = null
     ): array {
         $query = Position::query()
             ->where('organization_id', $organizationId)
             ->with(['department', 'organization']);
 
-        if ($departmentId !== null) {
+        if ($departmentId === 'org-wide') {
+            $query->whereNull('department_id');
+        } elseif (is_int($departmentId)) {
             $query->where('department_id', $departmentId);
         }
 

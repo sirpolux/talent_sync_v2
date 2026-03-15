@@ -33,12 +33,28 @@ class AdminPositionController extends Controller
         $page = (int) $request->input('page', 1);
         $perPage = (int) $request->input('per_page', 15);
 
-        $result = $this->positionService->getPaginatedPositions($orgId, $search, $page, $perPage);
+        $departmentId = $request->input('department_id');
+        $departmentFilter = null;
+
+        if ($departmentId === 'org-wide') {
+            $departmentFilter = 'org-wide';
+        } elseif (is_numeric($departmentId)) {
+            $departmentFilter = (int) $departmentId;
+        }
+
+        $result = $this->positionService->getPaginatedPositions($orgId, $search, $page, $perPage, $departmentFilter);
+
+        $departments = Department::query()
+            ->where('organization_id', $orgId)
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         return Inertia::render('Admin/Positions/Index', [
             'positions' => $result['data'],
             'pagination' => $result['pagination'],
             'search' => $search,
+            'departments' => $departments,
+            'department_id' => $departmentId,
         ]);
     }
 
@@ -66,11 +82,31 @@ class AdminPositionController extends Controller
                 'id',
                 'name',
                 'level',
+                'department_id',
             ]);
+
+        // Reporting rule (frontend + backend should match):
+        // A position can report to:
+        // - positions in the SAME department, OR
+        // - positions at management levels (senior/lead/manager/director) across the org.
+        $reportingRule = [
+            'managementLevels' => ['senior', 'lead', 'manager', 'director'],
+        ];
+
+        $reportingPositions = $positions
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'level' => $p->level,
+                'department_id' => $p->department_id,
+            ])
+            ->values();
 
         return Inertia::render('Admin/Positions/Create', [
             'departments' => $departments,
             'positions' => $positions,
+            'reportingPositions' => $reportingPositions,
+            'reportingRule' => $reportingRule,
             'levels' => ['entry', 'intermediate', 'senior', 'lead', 'manager', 'director'],
             'durationTypes' => ['days', 'weeks', 'months', 'years'],
         ]);
@@ -137,9 +173,20 @@ class AdminPositionController extends Controller
                 'department_code',
             ]);
 
+        $positions = Position::query()
+            ->where('organization_id', $orgId)
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'level',
+                'department_id',
+            ]);
+
         return Inertia::render('Admin/Positions/Edit', [
             'position' => $position,
             'departments' => $departments,
+            'positions' => $positions,
             'levels' => ['entry', 'intermediate', 'senior', 'lead', 'manager', 'director'],
             'durationTypes' => ['days', 'weeks', 'months', 'years'],
         ]);

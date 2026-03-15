@@ -54,6 +54,6 @@ interface PositionServiceInterface
         ?string $search = null,
         int $page = 1,
         int $perPage = 15,
-        ?int $departmentId = null
+        int|string|null $departmentId = null
     ): array;
 }

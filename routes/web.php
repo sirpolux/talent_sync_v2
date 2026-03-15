@@ -9,6 +9,7 @@ use App\Http\Controllers\AdminGradingSystemController;
 use App\Http\Controllers\AdminAssessmentController;
 use App\Http\Controllers\AdminTransitionController;
 use App\Http\Controllers\AdminHierarchyController;
+use App\Http\Controllers\AdminCareerPathController;
 use App\Http\Controllers\AdminPromotionController;
 use App\Http\Controllers\AdminSkillGapController;
 use App\Http\Controllers\AdminTrainingProgramController;
@@ -120,6 +121,7 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         // ============================================
         // CAREER MANAGEMENT ROUTES
         // ============================================
+        Route::resource('career-paths', AdminCareerPathController::class);
         Route::resource('transitions', AdminTransitionController::class);
         Route::resource('hierarchies', AdminHierarchyController::class);
         Route::prefix('promotions')->name('promotions.')->group(function() {

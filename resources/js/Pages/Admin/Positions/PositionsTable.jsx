@@ -5,6 +5,7 @@ export default function PositionsTable({
     positions,
     search,
     pagination,
+    departmentId,
     searchParam = "search",
     pageParam = "page",
     totalLabel = "positions",
@@ -13,11 +14,19 @@ export default function PositionsTable({
 
     const handleSearch = () => {
         const url = new URL(window.location);
+
         if (searchTerm.trim()) {
             url.searchParams.set(searchParam, searchTerm);
         } else {
             url.searchParams.delete(searchParam);
         }
+
+        if (departmentId) {
+            url.searchParams.set("department_id", departmentId);
+        } else {
+            url.searchParams.delete("department_id");
+        }
+
         url.searchParams.set(pageParam, 1);
         window.location.href = url.toString();
     };
@@ -32,6 +41,7 @@ export default function PositionsTable({
         setSearchTerm("");
         const url = new URL(window.location);
         url.searchParams.delete(searchParam);
+        url.searchParams.delete("department_id");
         url.searchParams.set(pageParam, 1);
         window.location.href = url.toString();
     };
@@ -39,9 +49,19 @@ export default function PositionsTable({
     const handlePageChange = (page) => {
         const url = new URL(window.location);
         url.searchParams.set(pageParam, page);
+
         if (search) {
             url.searchParams.set(searchParam, search);
+        } else {
+            url.searchParams.delete(searchParam);
         }
+
+        if (departmentId) {
+            url.searchParams.set("department_id", departmentId);
+        } else {
+            url.searchParams.delete("department_id");
+        }
+
         window.location.href = url.toString();
     };
 
@@ -108,12 +128,12 @@ export default function PositionsTable({
                     )}
                 </div>
 
-                {search && (
+                {(search || departmentId) && (
                     <button
                         onClick={handleClearSearch}
                         className="text-sm text-slate-600 hover:text-slate-900 underline"
                     >
-                        Clear Filter
+                        Clear filters
                     </button>
                 )}
 
