@@ -19,17 +19,22 @@ class DashboardController extends Controller
             return redirect()->route('org.select');
         }
 
-        // Org Admin (current focus)
-        if ($membership->is_org_admin) {
+        // Org Admin
+        if (!empty($membership->is_org_admin)) {
             return redirect()->route('admin.dashboard');
         }
 
-        // TODO: wire these up when their dashboards/routes exist.
-        // if ($membership->is_sub_admin) { ... }
-        // if ($membership->is_employee) { ... }
-        // if ($membership->is_trainer) { ... }
+        // Trainer (tutor)
+        if (!empty($membership->is_trainer)) {
+            return redirect()->route('trainer.dashboard');
+        }
 
-        // Fallback: for now send non-admins to org selection until their dashboards are implemented.
+        // Employee
+        if (!empty($membership->is_employee)) {
+            return redirect()->route('staff.dashboard');
+        }
+
+        // Fallback: if a user has a membership record but no role is set, return to org selection.
         return redirect()->route('org.select');
     }
 }

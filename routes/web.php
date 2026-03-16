@@ -43,6 +43,16 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
+    Route::get('/staff', function () {
+        return Inertia::render('Staff/Dashboard');
+    })->name('staff.dashboard');
+
+    Route::get('/trainer', function () {
+        return Inertia::render('Trainer/Dashboard');
+    })->name('trainer.dashboard');
+});
+
 Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(function () {
     Route::get('/admin', function () {
         return Inertia::render('Admin/Dashboard');

@@ -40,12 +40,9 @@ class OrganizationSelectionController extends Controller
 
         $request->session()->put('current_organization_id', $orgId);
 
-        // After org is selected, redirect based on membership role.
-
-        if ($membership && !empty($membership->is_org_admin)) {
-            return redirect()->route('admin.dashboard');
-        }
-
+        // After org is selected, redirect to the dashboard router.
+        // The dashboard route will decide where to send the user (admin vs trainer vs staff)
+        // based on the role in the CURRENT organization.
         return redirect()->route('dashboard');
     }
 }
