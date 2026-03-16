@@ -6,22 +6,83 @@ use App\Models\OrganizationInvitation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class OrganizationInvitationController extends Controller
 {
     /**
-     * Accept an organization invitation via token.
+     * GET /org/invitations/{token}/accept
      *
-     * Option B: org membership pivot already exists but is pending.
-     * On acceptance, we mark invitation accepted and flip pivot to active.
+     * If logged in: validates email matches invite, accepts invite immediately.
+     * If guest: shows a "set password" screen so the invited user can set a password,
+     * be logged in, then accept.
      */
     public function accept(Request $request, string $token)
+    {
+        $invitation = $this->loadValidInvitation($token);
+
+        if (Auth::check()) {
+            /** @var User $user */
+            $user = $request->user();
+
+            if (mb_strtolower($user->email) !== mb_strtolower($invitation->email)) {
+                abort(403, 'This invitation is not for your account.');
+            }
+
+            return $this->finalizeAcceptance($request, $invitation, $user);
+        }
+
+        return Inertia::render('Auth/AcceptInvitation', [
+            'token' => $token,
+            'email' => $invitation->email,
+            'organization' => [
+                'id' => $invitation->organization_id,
+                'name' => $invitation->organization?->name,
+            ],
+            'expires_at' => $invitation->expires_at,
+        ]);
+    }
+
+    /**
+     * POST /org/invitations/{token}/accept
+     *
+     * Guest sets a password for the invited email, is logged in, and the invite is accepted.
+     */
+    public function acceptStore(Request $request, string $token)
+    {
+        $invitation = $this->loadValidInvitation($token);
+
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = User::query()
+            ->whereRaw('LOWER(email) = ?', [mb_strtolower($invitation->email)])
+            ->first();
+
+        abort_unless($user, 404, 'Invited user not found.');
+
+        $user->password = $validated['password']; // User model casts password => hashed
+
+        // Accepting an invitation is treated as proof of email ownership.
+        if (is_null($user->email_verified_at)) {
+            $user->email_verified_at = now();
+        }
+
+        $user->save();
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return $this->finalizeAcceptance($request, $invitation, $user);
+    }
+
+    private function loadValidInvitation(string $token): OrganizationInvitation
     {
         $invitation = OrganizationInvitation::query()
             ->where('token', $token)
             ->firstOrFail();
 
-        // Basic expiration/one-time acceptance checks
         if ($invitation->accepted_at) {
             abort(410, 'Invitation already accepted.');
         }
@@ -30,19 +91,15 @@ class OrganizationInvitationController extends Controller
             abort(410, 'Invitation expired.');
         }
 
-        // Ensure user is logged in
-        if (!Auth::check()) {
-            // Store target to continue after login
-            $request->session()->put('intended_url', route('org.invitations.accept', ['token' => $token]));
-            return redirect()->route('login');
-        }
+        return $invitation->loadMissing('organization');
+    }
 
-        /** @var User $user */
-        $user = $request->user();
-
-        // Ensure the logged-in user matches the invited email (case-insensitive)
-        if (mb_strtolower($user->email) !== mb_strtolower($invitation->email)) {
-            abort(403, 'This invitation is not for your account.');
+    private function finalizeAcceptance(Request $request, OrganizationInvitation $invitation, User $user)
+    {
+        // Accepting an invitation is treated as proof of email ownership.
+        if (is_null($user->email_verified_at)) {
+            $user->email_verified_at = now();
+            $user->save();
         }
 
         // Mark invitation accepted

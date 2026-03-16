@@ -179,13 +179,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/org/select', [OrganizationSelectionController::class, 'index'])->name('org.select');
     Route::post('/org/set-current', [OrganizationSelectionController::class, 'setCurrent'])->name('org.set-current');
 
-    // Accept org invitation (must be logged in as the invited email)
-    Route::get('/org/invitations/{token}/accept', [OrganizationInvitationController::class, 'accept'])
-        ->name('org.invitations.accept');
-
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// Accept org invitation (guest reachable; invitee sets password if not logged in)
+Route::get('/org/invitations/{token}/accept', [OrganizationInvitationController::class, 'accept'])
+    ->name('org.invitations.accept');
+Route::post('/org/invitations/{token}/accept', [OrganizationInvitationController::class, 'acceptStore'])
+    ->name('org.invitations.accept.store');
 
 require __DIR__.'/auth.php';
