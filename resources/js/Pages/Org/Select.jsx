@@ -1,4 +1,5 @@
 import { useForm } from "@inertiajs/react";
+import CompanyLogo from "@/Components/CompanyLogo";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 
 export default function Select({ organizations }) {
@@ -14,7 +15,7 @@ export default function Select({ organizations }) {
   return (
     <AuthenticatedLayout>
       <div className="min-h-[70vh] flex items-center justify-center px-4">
-        <div className="w-full max-w-xl rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <div className="w-full max-w-2xl rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
           <h1 className="text-xl font-semibold text-slate-900">
             Select organization
           </h1>
@@ -25,21 +26,44 @@ export default function Select({ organizations }) {
 
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Organization
-              </label>
-              <select
-                className="mt-1 block w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
-                value={data.organization_id}
-                onChange={(e) => setData("organization_id", e.target.value)}
-              >
-                <option value="">-- select --</option>
-                {organizations.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {organizations.map((org) => {
+                  const selected = String(data.organization_id) === String(org.id);
+
+                  return (
+                    <button
+                      key={org.id}
+                      type="button"
+                      onClick={() => setData("organization_id", String(org.id))}
+                      className={[
+                        "w-full text-left rounded-xl border bg-white p-4 transition",
+                        "hover:border-slate-300 hover:shadow-sm",
+                        selected
+                          ? "border-[#1E3A8A] ring-2 ring-[#1E3A8A]/20"
+                          : "border-slate-200",
+                      ].join(" ")}
+                    >
+                      <div className="flex items-center gap-3">
+                        <CompanyLogo
+                          name={org.company_name}
+                          // Future-proof: if backend starts sending a logo URL, wire it here
+                          src={org.logo_url ?? null}
+                          size={40}
+                        />
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-slate-900">
+                            {org.company_name}
+                          </div>
+                          <div className="text-xs text-slate-600">
+                            Click to select
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
               {errors.organization_id ? (
                 <div className="mt-2 text-sm text-red-600">
                   {errors.organization_id}

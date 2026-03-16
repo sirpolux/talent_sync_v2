@@ -13,8 +13,8 @@ class OrganizationSelectionController extends Controller
 
         $organizations = $user
             ->organizations()
-            ->select('organizations.id', 'organizations.name')
-            ->orderBy('organizations.name')
+            ->select('organizations.id', 'organizations.company_name')
+            ->orderBy('organizations.company_name')
             ->get();
 
         return Inertia::render('Org/Select', [
