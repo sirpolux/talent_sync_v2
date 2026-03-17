@@ -25,7 +25,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrganizationInvitationController;
 use App\Http\Controllers\GeoController;
 use App\Http\Controllers\OrganizationSelectionController;
+use App\Http\Controllers\AdminEmployeeSkillController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StaffSkillController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -62,7 +64,13 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
         Route::get('/training/requests', fn () => Inertia::render('Staff/Training/Requests'))->name('training.requests');
 
         // Skills & Evidence
-        Route::get('/skills', fn () => Inertia::render('Staff/Skills/Index'))->name('skills.index');
+        Route::get('/skills', [StaffSkillController::class, 'index'])->name('skills.index');
+        Route::post('/skills', [StaffSkillController::class, 'store'])->name('skills.store');
+        Route::post('/skills/{allocation}/evidence', [StaffSkillController::class, 'uploadEvidence'])
+            ->name('skills.evidence.upload');
+        Route::patch('/skills/evidence/{evidence}/verify', [StaffSkillController::class, 'markEvidenceVerified'])
+            ->name('skills.evidence.verify');
+
         Route::get('/skills/upload', fn () => Inertia::render('Staff/Skills/Upload'))->name('skills.upload');
 
         // Career & Promotion
@@ -198,6 +206,18 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         // STAFF MANAGEMENT ROUTES
         // ============================================
         Route::resource('employees', AdminEmployeeController::class);
+
+        // Employee Skills (admin)
+        Route::prefix('employees/{employee}')->name('employees.')->group(function () {
+            Route::get('skills', [AdminEmployeeSkillController::class, 'index'])->name('skills.index');
+            Route::post('skills', [AdminEmployeeSkillController::class, 'store'])->name('skills.store');
+            Route::post('skills/{allocation}/evidence', [AdminEmployeeSkillController::class, 'uploadEvidence'])
+                ->name('skills.evidence.upload');
+            Route::patch('skills/evidence/{evidence}/verify', [AdminEmployeeSkillController::class, 'verifyEvidence'])
+                ->name('skills.evidence.verify');
+            Route::patch('skills/evidence/{evidence}/reject', [AdminEmployeeSkillController::class, 'rejectEvidence'])
+                ->name('skills.evidence.reject');
+        });
         Route::prefix('staff')->name('staff.')->group(function() {
             Route::resource('assignments', AdminStaffAssignmentController::class);
         });

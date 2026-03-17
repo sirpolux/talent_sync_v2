@@ -5,8 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class DepartmentCompetency extends Model
+class DepartmentSkillRequirement extends Model
 {
+    protected $table = 'department_skill_requirements';
+
     protected $fillable = [
         'organization_id',
         'department_id',
@@ -45,7 +47,7 @@ class DepartmentCompetency extends Model
 
     public function grade(): BelongsTo
     {
-        return $this->belongsTo(Grade::class);
+        return $this->belongsTo(Grade::class, 'grade_id');
     }
 
     public function addedBy(): BelongsTo

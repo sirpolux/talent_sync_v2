@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
-use App\Models\DepartmentCompetency;
+use App\Models\DepartmentSkillRequirement;
 use App\Models\Position;
 use App\Models\GradingSystem;
 use App\Models\PositionCompetency;
@@ -85,7 +85,7 @@ class AdminCompetencyController extends Controller
         $positionSearch = (string) $request->input('position_search', '');
         $positionPerPage = (int) $request->input('position_per_page', 10);
 
-        $departmentCompetencies = DepartmentCompetency::query()
+        $departmentCompetencies = DepartmentSkillRequirement::query()
             ->where('organization_id', $orgId)
             ->where('department_id', $department->id)
             ->with(['skill:id,name', 'gradingSystem:id,name', 'grade:id,label'])
@@ -178,7 +178,7 @@ class AdminCompetencyController extends Controller
             ->orderBy('must_have', 'desc')
             ->get();
 
-        $inheritedDepartmentCompetencies = DepartmentCompetency::query()
+        $inheritedDepartmentCompetencies = DepartmentSkillRequirement::query()
             ->where('organization_id', $orgId)
             ->where('department_id', $position->department_id)
             ->with(['skill:id,name', 'gradingSystem:id,name', 'grade:id,label'])
@@ -279,7 +279,7 @@ class AdminCompetencyController extends Controller
             'active' => ['required', 'boolean'],
         ]);
 
-        DepartmentCompetency::updateOrCreate(
+        DepartmentSkillRequirement::updateOrCreate(
             [
                 'department_id' => $data['department_id'],
                 'skill_id' => $data['skill_id'],
@@ -294,7 +294,7 @@ class AdminCompetencyController extends Controller
             ]
         );
 
-        return back()->with('status', 'Department competency saved.');
+        return back()->with('status', 'Department skill requirement saved.');
     }
 
     /**
@@ -364,7 +364,10 @@ class AdminCompetencyController extends Controller
     /**
      * PATCH /admin/competencies/department/{departmentCompetency}
      */
-    public function updateDepartment(Request $request, DepartmentCompetency $departmentCompetency): RedirectResponse
+    public function updateDepartment(
+        Request $request,
+        DepartmentSkillRequirement $departmentCompetency
+    ): RedirectResponse
     {
         $this->assertOrgOwnership($request, (int) $departmentCompetency->organization_id);
 
@@ -407,7 +410,7 @@ class AdminCompetencyController extends Controller
         $departmentCompetency->fill($data);
         $departmentCompetency->save();
 
-        return back()->with('status', 'Department competency updated.');
+        return back()->with('status', 'Department skill requirement updated.');
     }
 
     /**
