@@ -43,10 +43,40 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
-    Route::get('/staff', function () {
-        return Inertia::render('Staff/Dashboard');
-    })->name('staff.dashboard');
+    Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
+    Route::prefix('staff')->name('staff.')->group(function () {
+        Route::get('/', function () {
+            return Inertia::render('Staff/Dashboard');
+        })->name('dashboard');
+
+        // Account
+        Route::get('/account/profile', [\App\Http\Controllers\StaffAccountController::class, 'profile'])
+            ->name('account.profile');
+
+        Route::get('/account/password', fn () => Inertia::render('Staff/Account/Password'))
+            ->name('account.password');
+
+        // Training
+        Route::get('/training', fn () => Inertia::render('Staff/Training/Index'))->name('training.index');
+        Route::get('/training/available', fn () => Inertia::render('Staff/Training/Available'))->name('training.available');
+        Route::get('/training/requests', fn () => Inertia::render('Staff/Training/Requests'))->name('training.requests');
+
+        // Skills & Evidence
+        Route::get('/skills', fn () => Inertia::render('Staff/Skills/Index'))->name('skills.index');
+        Route::get('/skills/upload', fn () => Inertia::render('Staff/Skills/Upload'))->name('skills.upload');
+
+        // Career & Promotion
+        Route::get('/promotions/eligibility', fn () => Inertia::render('Staff/Promotions/Eligibility'))->name('promotions.eligibility');
+        Route::get('/promotions', fn () => Inertia::render('Staff/Promotions/Index'))->name('promotions.index');
+        Route::get('/promotions/apply', fn () => Inertia::render('Staff/Promotions/Create'))->name('promotions.create');
+
+        // Leave
+        Route::get('/leave', fn () => Inertia::render('Staff/Leave/Index'))->name('leave.index');
+        Route::get('/leave/apply', fn () => Inertia::render('Staff/Leave/Create'))->name('leave.create');
+
+        // Notifications
+        Route::get('/notifications', fn () => Inertia::render('Staff/Notifications/Index'))->name('notifications.index');
+    });
 
     Route::get('/trainer', function () {
         return Inertia::render('Trainer/Dashboard');

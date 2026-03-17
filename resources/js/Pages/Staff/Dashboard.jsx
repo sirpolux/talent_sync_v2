@@ -1,4 +1,4 @@
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import StaffLayout from "@/Layouts/StaffLayout";
 
 function StatCard({ title, value, helper }) {
   return (
@@ -26,31 +26,11 @@ function SectionCard({ title, children, right }) {
 
 export default function Dashboard() {
   return (
-    <AuthenticatedLayout>
-      <div className="p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Overview</h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Here’s a quick snapshot of your activity in this organization.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <a
-              href={route("profile.edit")}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
-            >
-              My profile
-            </a>
-            <a
-              href={route("org.select")}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
-            >
-              Switch org
-            </a>
-          </div>
-        </div>
+    <StaffLayout headerTitle="Overview">
+      <div>
+        <p className="text-sm text-slate-600">
+          Here’s a quick snapshot of your activity in this organization.
+        </p>
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard title="My trainings" value="—" helper="Coming soon" />
@@ -65,7 +45,7 @@ export default function Dashboard() {
               title="My trainings"
               right={
                 <a
-                  href="#"
+                  href={route("staff.training.index")}
                   className="font-semibold text-[#1E3A8A] hover:underline"
                 >
                   View all
@@ -78,7 +58,17 @@ export default function Dashboard() {
               </div>
             </SectionCard>
 
-            <SectionCard title="Skills & certifications">
+            <SectionCard
+              title="Skills & certifications"
+              right={
+                <a
+                  href={route("staff.skills.index")}
+                  className="font-semibold text-[#1E3A8A] hover:underline"
+                >
+                  View all
+                </a>
+              }
+            >
               <div className="text-sm text-slate-600">
                 Your proficiencies and uploaded evidence will appear here.
               </div>
@@ -86,7 +76,17 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-6">
-            <SectionCard title="Notifications">
+            <SectionCard
+              title="Notifications"
+              right={
+                <a
+                  href={route("staff.notifications.index")}
+                  className="font-semibold text-[#1E3A8A] hover:underline"
+                >
+                  View all
+                </a>
+              }
+            >
               <ul className="space-y-3 text-sm text-slate-700">
                 <li className="rounded-lg bg-slate-50 p-3">
                   <div className="font-medium text-slate-900">No alerts yet</div>
@@ -105,6 +105,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </AuthenticatedLayout>
+    </StaffLayout>
   );
 }
