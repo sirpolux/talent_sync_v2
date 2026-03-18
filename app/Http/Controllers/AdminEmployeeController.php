@@ -22,7 +22,7 @@ class AdminEmployeeController extends Controller
 
         $employees = User::query()
             ->select([
-                'users.id',
+                'organization_user.id as org_user_id',
                 'users.name',
                 'users.email',
                 'organization_user.membership_status',
@@ -38,7 +38,7 @@ class AdminEmployeeController extends Controller
             ->get()
             ->map(function ($u) {
                 return [
-                    'id' => $u->id,
+                    'id' => $u->org_user_id,
                     'name' => $u->name,
                     'email' => $u->email,
                     'membership_status' => $u->membership_status,
@@ -195,9 +195,50 @@ class AdminEmployeeController extends Controller
         return redirect()->route('admin.employees.index')->with('success', 'Employee created as pending. Invitation sent.');
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        return Inertia::render('Admin/Employees/Show');
+        $orgId = (int) $request->session()->get('current_organization_id');
+        abort_unless($orgId, 403, 'No active organization selected.');
+
+        $employee = \App\Models\OrganizationUser::query()
+            ->with([
+                'user:id,name,email',
+                'department:id,name',
+                'position:id,name',
+            ])
+            ->where('organization_id', $orgId)
+            ->where('is_employee', true)
+            ->whereKey($id)
+            ->firstOrFail();
+
+        return Inertia::render('Admin/Employees/Show', [
+            'employee' => [
+                'id' => $employee->id,
+                'user_id' => $employee->user_id,
+                'name' => $employee->user?->name,
+                'email' => $employee->user?->email,
+
+                'membership_status' => $employee->membership_status,
+                'employee_code' => $employee->employee_code,
+                'phone' => $employee->phone,
+                'employment_type' => $employee->employment_type,
+                'work_mode' => $employee->work_mode,
+                'employment_date' => $employee->employment_date,
+                'gender' => $employee->gender,
+                'nationality' => $employee->nationality,
+                'state' => $employee->state,
+
+                'department_id' => $employee->department_id,
+                'department_name' => $employee->department?->name,
+                'position_id' => $employee->position_id,
+                'position_name' => $employee->position?->name,
+                'date_started_current_position' => $employee->date_started_current_position,
+
+                'manager_user_id' => $employee->manager_user_id,
+                'created_at' => $employee->created_at,
+                'updated_at' => $employee->updated_at,
+            ],
+        ]);
     }
 
     public function edit($id)

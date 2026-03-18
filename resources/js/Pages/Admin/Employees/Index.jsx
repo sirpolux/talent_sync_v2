@@ -45,12 +45,13 @@ export default function Index({ employees = [] }) {
               <th className="text-left px-4 py-3">Status</th>
               <th className="text-left px-4 py-3">Department</th>
               <th className="text-left px-4 py-3">Position</th>
+              <th className="text-left px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             {employees.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-gray-500" colSpan={5}>
+                <td className="px-4 py-6 text-gray-500" colSpan={6}>
                   No employees yet.
                 </td>
               </tr>
@@ -73,6 +74,23 @@ export default function Index({ employees = [] }) {
                   </td>
                   <td className="px-4 py-3">{e.department_name ?? "-"}</td>
                   <td className="px-4 py-3">{e.position_name ?? "-"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={route("admin.employees.show", e.id)}
+                        className="inline-flex items-center px-3 py-1.5 rounded-md bg-gray-900 text-white text-xs"
+                      >
+                        View
+                      </Link>
+
+                      <Link
+                        href={route("admin.employees.skills.index", e.id)}
+                        className="inline-flex items-center px-3 py-1.5 rounded-md bg-blue-700 text-white text-xs"
+                      >
+                        Skills
+                      </Link>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}

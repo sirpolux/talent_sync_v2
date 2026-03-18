@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EmployeeSkillEvidence extends Model
 {
+    protected $table = 'employee_skill_evidences';
     protected $fillable = [
         'employee_skill_allocation_id',
         'document_url',
