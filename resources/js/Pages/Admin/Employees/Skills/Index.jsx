@@ -1,6 +1,5 @@
 import AdminLayout from "@/Layouts/AdminLayout";
 import Breadcrumbs from "@/Components/Breadcrumbs";
-import AllocationCard from "@/Pages/Admin/Employees/Skills/AllocationCard";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { useEffect, useMemo } from "react";
 
@@ -229,23 +228,91 @@ export default function Index({
           </form>
         </div>
 
-        <div className="space-y-4">
-          {allocations.map((a) => (
-            <AllocationCard
-              key={a.id}
-              employeeId={employee.id}
-              allocation={a}
-              isImageUrl={isImageUrl}
-              isPdfUrl={isPdfUrl}
-              formatBytes={formatBytes}
-            />
-          ))}
+        <div className="rounded-lg border bg-white">
+          <div className="border-b px-5 py-4">
+            <h2 className="text-lg font-semibold">Allocated Skills</h2>
+            <p className="text-sm text-gray-600">Manage evidence and verification from the View page.</p>
+          </div>
 
-          {allocations.length === 0 && (
-            <div className="rounded-lg border bg-white p-5 text-sm text-gray-600">
-              No skills allocated yet.
-            </div>
-          )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 text-xs uppercase text-gray-600">
+                <tr>
+                  <th className="px-5 py-3">Skill</th>
+                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">Evidence</th>
+                  <th className="px-5 py-3">Added by</th>
+                  <th className="px-5 py-3">Verified by</th>
+                  <th className="px-5 py-3">Created</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {allocations.map((a) => {
+                  const latestEvidence = a.evidences?.[0] ?? null;
+                  const hasEvidence = !!latestEvidence;
+                  const isEvidenceVerified = latestEvidence?.verification_status === "verified";
+
+                  const addedByLabel =
+                    a.added_via === "admin"
+                      ? `Admin${a.createdBy?.name ? ` (${a.createdBy.name})` : ""}`
+                      : "Self";
+
+                  return (
+                    <tr key={a.id} className="align-top">
+                      <td className="px-5 py-3 font-medium text-gray-900">
+                        {a.skill?.name ?? "-"}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">
+                          {a.status ?? "pending"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3">
+                        {hasEvidence ? (
+                          <span
+                            className={[
+                              "rounded-full px-2 py-1 text-xs font-medium",
+                              isEvidenceVerified
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-amber-50 text-amber-700",
+                            ].join(" ")}
+                          >
+                            {isEvidenceVerified ? "Yes (Verified)" : "Yes (Pending)"}
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">
+                            No
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">{addedByLabel}</td>
+                      <td className="px-5 py-3">{a.verifiedBy?.name ?? "-"}</td>
+                      <td className="px-5 py-3">
+                        {a.created_at ? new Date(a.created_at).toLocaleDateString() : "-"}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <Link
+                          href={route("admin.employees.skills.show", [employee.id, a.id])}
+                          className="inline-flex items-center rounded-md border bg-white px-3 py-1.5 text-sm"
+                        >
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {allocations.length === 0 && (
+                  <tr>
+                    <td className="px-5 py-6 text-sm text-gray-600" colSpan={7}>
+                      No skills allocated yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </AdminLayout>

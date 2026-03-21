@@ -66,6 +66,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
         // Skills & Evidence
         Route::get('/skills', [StaffSkillController::class, 'index'])->name('skills.index');
         Route::post('/skills', [StaffSkillController::class, 'store'])->name('skills.store');
+        Route::get('/skills/{allocation}', [StaffSkillController::class, 'show'])->name('skills.show');
+
         Route::post('/skills/{allocation}/evidence', [StaffSkillController::class, 'uploadEvidence'])
             ->name('skills.evidence.upload');
         Route::patch('/skills/evidence/{evidence}/verify', [StaffSkillController::class, 'markEvidenceVerified'])
@@ -211,6 +213,8 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         Route::prefix('employees/{employee}')->name('employees.')->group(function () {
             Route::get('skills', [AdminEmployeeSkillController::class, 'index'])->name('skills.index');
             Route::post('skills', [AdminEmployeeSkillController::class, 'store'])->name('skills.store');
+            Route::get('skills/{allocation}', [AdminEmployeeSkillController::class, 'show'])->name('skills.show');
+
             Route::post('skills/{allocation}/evidence', [AdminEmployeeSkillController::class, 'uploadEvidence'])
                 ->name('skills.evidence.upload');
             Route::patch('skills/evidence/{evidence}/verify', [AdminEmployeeSkillController::class, 'verifyEvidence'])

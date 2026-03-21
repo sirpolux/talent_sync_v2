@@ -125,6 +125,31 @@ class AdminEmployeeSkillController extends Controller
         ]);
     }
 
+    public function show(Request $request, OrganizationUser $employee, EmployeeSkillAllocation $allocation): Response
+    {
+        $orgId = (int) $request->session()->get('current_organization_id');
+        abort_unless((int) $employee->organization_id === $orgId, 404);
+        abort_unless((int) $allocation->organization_user_id === (int) $employee->id, 404);
+
+        $allocation->load([
+            'skill:id,name',
+            'createdBy:id,name',
+            'verifiedBy:id,name',
+            'evidences' => function ($q) {
+                $q->latest();
+            },
+        ]);
+
+        return Inertia::render('Admin/Employees/Skills/Show', [
+            'employee' => [
+                'id' => $employee->id,
+                'name' => $employee->user?->name,
+                'email' => $employee->user?->email,
+            ],
+            'allocation' => $allocation,
+        ]);
+    }
+
     public function store(Request $request, OrganizationUser $employee): RedirectResponse
     {
         $orgId = (int) $request->session()->get('current_organization_id');
@@ -218,7 +243,7 @@ class AdminEmployeeSkillController extends Controller
             }
         }
 
-        EmployeeSkillAllocation::firstOrCreate(
+        $allocation = EmployeeSkillAllocation::firstOrCreate(
             [
                 'organization_user_id' => $employee->id,
                 'skill_id' => $skillId,
@@ -228,13 +253,14 @@ class AdminEmployeeSkillController extends Controller
                 'created_by' => $request->user()?->id,
                 'grading_system_id' => $data['grading_system_id'] ?? null,
                 'grade_id' => $data['grade_id'] ?? null,
-                'status' => 'verified', // admin-added skill can be considered verified once evidence is added
-                'verified_by' => $request->user()?->id,
-                'verified_at' => now(),
+                // keep pending until evidence exists
+                'status' => 'pending',
             ]
         );
 
-        return back()->with('status', 'Skill added to employee.');
+        return redirect()
+            ->route('admin.employees.skills.show', [$employee->id, $allocation->id])
+            ->with('status', 'Skill added to employee.');
     }
 
     public function uploadEvidence(
