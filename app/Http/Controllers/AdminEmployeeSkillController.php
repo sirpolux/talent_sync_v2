@@ -322,10 +322,10 @@ class AdminEmployeeSkillController extends Controller
         $evidence->verified_at = now();
         $evidence->save();
 
-        $allocation->status = 'verified';
-        $allocation->verified_by = $request->user()?->id;
-        $allocation->verified_at = now();
-        $allocation->save();
+        // $allocation->status = 'verified';
+        // $allocation->verified_by = $request->user()?->id;
+        // $allocation->verified_at = now();
+        // $allocation->save();
 
         return back()->with('status', 'Evidence verified.');
     }
@@ -358,5 +358,39 @@ class AdminEmployeeSkillController extends Controller
         $allocation->save();
 
         return back()->with('status', 'Evidence rejected.');
+    }
+
+    public function verifyAllocation(
+        Request $request,
+        OrganizationUser $employee,
+        EmployeeSkillAllocation $allocation
+    ): RedirectResponse {
+        $orgId = (int) $request->session()->get('current_organization_id');
+        abort_unless((int) $employee->organization_id === $orgId, 404);
+        abort_unless((int) $allocation->organization_user_id === (int) $employee->id, 404);
+
+        $allocation->status = 'verified';
+        $allocation->verified_by = $request->user()?->id;
+        $allocation->verified_at = now();
+        $allocation->save();
+
+        return back()->with('status', 'Skill verified.');
+    }
+
+    public function unverifyAllocation(
+        Request $request,
+        OrganizationUser $employee,
+        EmployeeSkillAllocation $allocation
+    ): RedirectResponse {
+        $orgId = (int) $request->session()->get('current_organization_id');
+        abort_unless((int) $employee->organization_id === $orgId, 404);
+        abort_unless((int) $allocation->organization_user_id === (int) $employee->id, 404);
+
+        $allocation->status = 'pending';
+        $allocation->verified_by = null;
+        $allocation->verified_at = null;
+        $allocation->save();
+
+        return back()->with('status', 'Skill set back to pending.');
     }
 }

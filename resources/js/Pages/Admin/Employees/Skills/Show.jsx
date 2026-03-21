@@ -1,9 +1,12 @@
 import AdminLayout from "@/Layouts/AdminLayout";
 import Breadcrumbs from "@/Components/Breadcrumbs";
-import { Head, Link, useForm } from "@inertiajs/react";
+import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { useEffect, useMemo, useState } from "react";
 
 export default function Show({ employee, allocation }) {
+  const { flash } = usePage().props;
+  const flashStatus = flash?.status;
+  const flashError = flash?.error;
   const latestEvidence = allocation?.evidences?.[0] ?? null;
 
   const isImageUrl = (url) => {
@@ -87,8 +90,50 @@ export default function Show({ employee, allocation }) {
       </div>
 
       <div className="space-y-6">
+        {flashStatus ? (
+          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {flashStatus}
+          </div>
+        ) : null}
+
+        {flashError ? (
+          <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            {flashError}
+          </div>
+        ) : null}
+
         <div className="rounded-lg border bg-white p-5">
-          <h2 className="text-lg font-semibold">Allocation</h2>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-lg font-semibold">Allocation</h2>
+
+            <div className="flex flex-wrap gap-2">
+              {allocation?.status !== "verified" ? (
+                <button
+                  type="button"
+                  className="rounded-md bg-emerald-700 px-3 py-2 text-sm text-white"
+                  onClick={() =>
+                    uploadForm.patch(route("admin.employees.skills.verify", [employee.id, allocation.id]), {
+                      preserveScroll: true,
+                    })
+                  }
+                >
+                  Verify Skill
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="rounded-md bg-slate-700 px-3 py-2 text-sm text-white"
+                  onClick={() =>
+                    uploadForm.patch(route("admin.employees.skills.unverify", [employee.id, allocation.id]), {
+                      preserveScroll: true,
+                    })
+                  }
+                >
+                  Set Pending
+                </button>
+              )}
+            </div>
+          </div>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <div className="text-xs uppercase text-gray-500">Status</div>
@@ -110,7 +155,7 @@ export default function Show({ employee, allocation }) {
             </div>
             <div>
               <div className="text-xs uppercase text-gray-500">Verified by</div>
-              <div className="text-sm font-medium">{allocation?.verifiedBy?.name ?? "-"}</div>
+              <div className="text-sm font-medium">{allocation?.verified_by?.name ?? "-"}</div>
             </div>
             <div>
               <div className="text-xs uppercase text-gray-500">Verified at</div>

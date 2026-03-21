@@ -221,6 +221,11 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
                 ->name('skills.evidence.verify');
             Route::patch('skills/evidence/{evidence}/reject', [AdminEmployeeSkillController::class, 'rejectEvidence'])
                 ->name('skills.evidence.reject');
+
+            Route::patch('skills/{allocation}/verify', [AdminEmployeeSkillController::class, 'verifyAllocation'])
+                ->name('skills.verify');
+            Route::patch('skills/{allocation}/unverify', [AdminEmployeeSkillController::class, 'unverifyAllocation'])
+                ->name('skills.unverify');
         });
         Route::prefix('staff')->name('staff.')->group(function() {
             Route::resource('assignments', AdminStaffAssignmentController::class);
