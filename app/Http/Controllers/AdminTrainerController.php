@@ -23,6 +23,11 @@ class AdminTrainerController extends Controller
 
         abort_unless($orgId, 403, 'No active organization selected.');
 
+        $q = trim((string) $request->query('q', ''));
+        $status = (string) $request->query('status', 'all');
+        $perPage = (int) $request->query('per_page', 10);
+        $perPage = in_array($perPage, [10, 25, 50], true) ? $perPage : 10;
+
         $trainers = User::query()
             ->select([
                 'organization_user.id as org_user_id',
@@ -40,9 +45,18 @@ class AdminTrainerController extends Controller
             ->leftJoin('trainer_profiles', 'trainer_profiles.organization_user_id', '=', 'organization_user.id')
             ->where('organization_user.organization_id', $orgId)
             ->where('organization_user.is_trainer', true)
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('users.name', 'like', "%{$q}%")
+                        ->orWhere('users.email', 'like', "%{$q}%");
+                });
+            })
+            ->when(in_array($status, ['active', 'pending'], true), function ($query) use ($status) {
+                $query->where('organization_user.membership_status', $status);
+            })
             ->orderBy('users.name')
-            ->get()
-            ->map(function ($u) {
+            ->paginate($perPage)
+            ->through(function ($u) {
                 return [
                     'id' => $u->org_user_id,
                     'name' => $u->name,
@@ -53,10 +67,16 @@ class AdminTrainerController extends Controller
                     'headline' => $u->trainer_headline,
                     'trainer_status' => $u->trainer_status,
                 ];
-            });
+            })
+            ->withQueryString();
 
         return Inertia::render('Admin/Trainers/Index', [
             'trainers' => $trainers,
+            'filters' => [
+                'q' => $q,
+                'status' => $status,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 
