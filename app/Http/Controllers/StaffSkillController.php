@@ -253,7 +253,7 @@ class StaffSkillController extends Controller
                 'created_by' => $userId,
                 'grading_system_id' => $data['grading_system_id'] ?? null,
                 'grade_id' => $data['grade_id'] ?? null,
-                'status' => 'pending',
+                'status' => 'pending_evidence',
             ]
         );
 
@@ -295,7 +295,7 @@ class StaffSkillController extends Controller
             ]);
 
             // keep allocation pending until admin verifies
-            $allocation->status = 'pending';
+            $allocation->status = $allocation->status=="pending_evidence"?"pending_verification":$allocation->status;
             $allocation->save();
 
             DB::commit();
