@@ -223,11 +223,15 @@ class AdminTrainerController extends Controller
         }
 
         // reload membership pivot for its ID (org_user_id)
-        $membership = $user->organizations()->whereKey($orgId)->first()?->pivot;
-        abort_unless($membership, 500, 'Organization membership record not found after attach/update.');
+        $membershipModel = \App\Models\OrganizationUser::query()
+            ->where('organization_id', $orgId)
+            ->where('user_id', $user->id)
+            ->first();
+
+        abort_unless($membershipModel, 500, 'Organization membership record not found after attach/update.');
 
         TrainerProfile::query()->firstOrCreate([
-            'organization_user_id' => $membership->id,
+            'organization_user_id' => $membershipModel->id,
         ], [
             'status' => 'pending',
         ]);
