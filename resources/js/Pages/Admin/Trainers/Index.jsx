@@ -273,6 +273,12 @@ export default function Index({ trainers, filters }) {
                         >
                           View
                         </Link>
+                        <Link
+                          href={route("admin.trainers.skills", t.id)}
+                          className="inline-flex items-center rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-black"
+                        >
+                          Skills
+                        </Link>
                       </div>
                     </td>
                   </tr>

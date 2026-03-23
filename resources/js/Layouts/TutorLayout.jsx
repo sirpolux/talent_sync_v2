@@ -103,7 +103,7 @@ export default function TutorLayout({
   headerTitle = "Trainer Dashboard",
   children,
 }) {
-  const { auth } = usePage().props;
+  const { auth, organization } = usePage().props;
   const currentUrl = usePage().url;
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -118,11 +118,16 @@ export default function TutorLayout({
         href: "trainer.dashboard",
       },
       {
+        key: "skills",
+        icon: <GraduationCap className="w-5 h-5" />,
+        label: "Skills & Certifications",
+        href: "trainer.skills.index",
+      },
+      {
         key: "training",
         icon: <BookOpen className="w-5 h-5" />,
         label: "Training",
         children: [
-          { key: "training.skills", label: "Skills & Certifications", href: "trainer.skills.index" },
           { key: "training.requests", label: "Requests", href: "trainer.requests.index" },
           { key: "training.sessions", label: "Sessions", href: "trainer.sessions.index" },
           { key: "training.progress", label: "Progress", href: "trainer.progress.index" },
@@ -130,13 +135,16 @@ export default function TutorLayout({
         ],
       },
       {
-        key: "communication",
+        key: "messages",
         icon: <MessageSquare className="w-5 h-5" />,
-        label: "Communication",
-        children: [
-          { key: "communication.messages", label: "Messages", href: "trainer.messages.index" },
-          { key: "communication.notifications", label: "Notifications", href: "trainer.notifications.index" },
-        ],
+        label: "Messages",
+        href: "trainer.messages.index",
+      },
+      {
+        key: "notifications",
+        icon: <Bell className="w-5 h-5" />,
+        label: "Notifications",
+        href: "trainer.notifications.index",
       },
       {
         key: "settings",
@@ -181,6 +189,11 @@ export default function TutorLayout({
 
   const displayName = auth?.user?.name || auth?.user?.email;
   const initials = getInitials(displayName);
+  const currentOrganizationName =
+    organization?.current?.name ||
+    organization?.current?.company_name ||
+    organization?.current?.organization_name ||
+    "No active organization";
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-blue-50 to-emerald-50 overflow-hidden font-sans relative">
@@ -193,7 +206,7 @@ export default function TutorLayout({
 
           <aside className="fixed md:relative z-40 flex flex-col w-72 h-full bg-white/90 backdrop-blur-md shadow-lg border-r border-white/30">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200/50">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
                 <img
                   src="/img/logo.svg"
                   alt="TalentSync"
@@ -204,6 +217,9 @@ export default function TutorLayout({
                     TalentSync
                   </div>
                   <div className="text-xs text-gray-500">Trainer</div>
+                  <div className="mt-1 inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                    {currentOrganizationName}
+                  </div>
                 </div>
               </div>
 

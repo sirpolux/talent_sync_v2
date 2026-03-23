@@ -99,6 +99,11 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
         Route::get('/messages', [TutorDashboardController::class, 'messages'])->name('messages.index');
         Route::get('/notifications', [TutorDashboardController::class, 'notifications'])->name('notifications.index');
     });
+
+    Route::prefix('admin/trainers')->name('admin.trainers.')->group(function () {
+        Route::get('{trainer}', [AdminTrainerController::class, 'show'])->name('show');
+        Route::get('{trainer}/skills', [AdminTrainerController::class, 'skills'])->name('skills');
+    });
 });
 
 Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(function () {

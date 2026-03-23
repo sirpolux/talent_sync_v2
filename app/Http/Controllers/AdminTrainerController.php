@@ -336,23 +336,93 @@ class AdminTrainerController extends Controller
         );
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        return Inertia::render('Admin/Trainers/Show');
+        $orgId = (int) $request->session()->get('current_organization_id');
+        abort_unless($orgId, 403, 'No active organization selected.');
+
+        $trainer = OrganizationUser::query()
+            ->with([
+                'user',
+                'department',
+                'position',
+            ])
+            ->where('organization_id', $orgId)
+            ->where('is_trainer', true)
+            ->whereKey($id)
+            ->firstOrFail();
+
+        $profile = TrainerProfile::query()
+            ->with([
+                'specialties.certifications',
+            ])
+            ->where('organization_user_id', $trainer->id)
+            ->first();
+
+        return Inertia::render('Admin/Trainers/Show', [
+            'trainer' => [
+                'id' => $trainer->id,
+                'name' => $trainer->user?->name,
+                'email' => $trainer->user?->email,
+                'department_name' => $trainer->department?->name,
+                'position_name' => $trainer->position?->name,
+                'membership_status' => $trainer->membership_status,
+                'profile' => $profile ? [
+                    'id' => $profile->id,
+                    'status' => $profile->status ?? 'active',
+                    'headline' => $profile->headline,
+                    'specialties' => $profile->specialties->map(fn ($specialty) => [
+                        'id' => $specialty->id,
+                        'name' => $specialty->name,
+                        'description' => $specialty->description,
+                        'certifications' => $specialty->certifications->map(fn ($certification) => [
+                            'id' => $certification->id,
+                            'name' => $certification->name,
+                            'issuer' => $certification->issuer,
+                            'credential_id' => $certification->credential_id,
+                            'credential_url' => $certification->credential_url,
+                        ]),
+                    ]),
+                ] : null,
+            ],
+        ]);
+    }
+
+    public function skills(Request $request, $id)
+    {
+        $orgId = (int) $request->session()->get('current_organization_id');
+        abort_unless($orgId, 403, 'No active organization selected.');
+
+        $trainer = OrganizationUser::query()
+            ->with(['user'])
+            ->where('organization_id', $orgId)
+            ->where('is_trainer', true)
+            ->whereKey($id)
+            ->firstOrFail();
+
+        $skills = collect();
+
+        return Inertia::render('Admin/Trainers/Skills', [
+            'trainer' => [
+                'id' => $trainer->id,
+                'name' => $trainer->user?->name,
+            ],
+            'skills' => $skills,
+        ]);
     }
 
     public function edit($id)
     {
-        return Inertia::render('Admin/Trainers/Edit');
+        return redirect()->route('admin.trainers.show', $id);
     }
 
     public function update(Request $request, $id)
     {
-        // TODO: Implement update logic
+        return back()->with('error', 'Update not implemented yet.');
     }
 
     public function destroy($id)
     {
-        // TODO: Implement destroy logic
+        return back()->with('error', 'Delete not implemented yet.');
     }
 }
