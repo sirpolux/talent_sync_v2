@@ -62,10 +62,9 @@ class OrganizationInvitationController extends Controller
 
         abort_unless($user, 404, 'Invited user not found.');
 
-        $user->password = $validated['password']; // User model casts password => hashed
+        $user->password = $validated['password'];
 
-        // Accepting an invitation is treated as proof of email ownership.
-        if (is_null($user->email_verified_at)) {
+        if (is_null($user->email_verified_at) && $this->requiresEmailVerification($invitation)) {
             $user->email_verified_at = now();
         }
 
@@ -96,17 +95,14 @@ class OrganizationInvitationController extends Controller
 
     private function finalizeAcceptance(Request $request, OrganizationInvitation $invitation, User $user)
     {
-        // Accepting an invitation is treated as proof of email ownership.
-        if (is_null($user->email_verified_at)) {
+        if (is_null($user->email_verified_at) && $this->requiresEmailVerification($invitation)) {
             $user->email_verified_at = now();
             $user->save();
         }
 
-        // Mark invitation accepted
         $invitation->accepted_at = now();
         $invitation->save();
 
-        // Flip org membership pivot to active
         $orgId = (int) $invitation->organization_id;
 
         $membership = $user->organizations()->whereKey($orgId)->first()?->pivot;
@@ -116,12 +112,19 @@ class OrganizationInvitationController extends Controller
         $user->organizations()->updateExistingPivot($orgId, [
             'membership_status' => 'active',
             'membership_confirmed_at' => now(),
-            'membership_confirmed_by_user_id' => $user->id, // self-confirmation
+            'membership_confirmed_by_user_id' => $user->id,
         ]);
 
-        // Set current org after acceptance
         $request->session()->put('current_organization_id', $orgId);
 
         return redirect()->route('dashboard');
+    }
+
+    private function requiresEmailVerification(OrganizationInvitation $invitation): bool
+    {
+        return in_array($invitation->meta['invite_type'] ?? null, [
+            'new_user_account_setup',
+            'existing_user_confirmation',
+        ], true);
     }
 }

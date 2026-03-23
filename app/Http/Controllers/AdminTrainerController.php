@@ -7,6 +7,7 @@ use App\Mail\TutorInvitationMail;
 use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrganizationInvitation;
+use App\Models\OrganizationUser;
 use App\Models\Position;
 use App\Models\TrainerProfile;
 use App\Models\User;
@@ -131,10 +132,10 @@ class AdminTrainerController extends Controller
         abort_unless($orgId, 403, 'No active organization selected.');
 
         $validated = $request->validate([
-            'type' => ['required', 'in:existing_staff,new_tutor'],
+            'type' => ['required', 'in:existing_staff,existing_user,new_tutor'],
 
             // existing staff flow
-            'user_id' => ['required_if:type,existing_staff', 'integer', 'exists:users,id'],
+            'user_id' => ['required_if:type,existing_staff,existing_user', 'integer', 'exists:users,id'],
 
             // new tutor flow
             'name' => ['required_if:type,new_tutor', 'string', 'max:255'],
@@ -145,88 +146,69 @@ class AdminTrainerController extends Controller
         /** @var Organization $organization */
         $organization = Organization::query()->findOrFail($orgId);
 
-        // -------------------------------------------------
-        // Existing staff -> promote to tutor (no confirmation)
-        // -------------------------------------------------
         if ($validated['type'] === 'existing_staff') {
-            $userId = (int) $validated['user_id'];
-
-            $user = User::query()->findOrFail($userId);
-
-            $membership = $user->organizations()->whereKey($orgId)->first()?->pivot;
-
-            abort_unless($membership, 404, 'Organization membership record not found.');
-
-            $user->organizations()->updateExistingPivot($orgId, [
-                'is_trainer' => true,
-            ]);
-
-            TrainerProfile::query()->firstOrCreate([
-                'organization_user_id' => $membership->id,
-            ]);
-
-            Mail::to($user->email)->send(new TutorAddedMail(
-                organization: $organization,
-                user: $user,
-                addedBy: $request->user()
-            ));
-
-            return redirect()->route('admin.trainers.index')
-                ->with('success', 'Trainer added. Notification email sent.');
+            return $this->promoteExistingStaffToTutor($request, $organization, (int) $validated['user_id']);
         }
 
-        // -------------------------------------------------
-        // New tutor -> invite + confirmation required
-        // -------------------------------------------------
-        $email = mb_strtolower($validated['email']);
-
-        $user = User::query()->firstOrCreate(
-            ['email' => $email],
-            [
-                'name' => $validated['name'],
-                'password' => Str::password(24), // hashed by cast
-            ]
-        );
-
-        if ($user->name !== $validated['name']) {
-            $user->name = $validated['name'];
-            $user->save();
+        if ($validated['type'] === 'existing_user') {
+            return $this->inviteExistingUserToTutor($request, $organization, (int) $validated['user_id']);
         }
 
-        $existingMembership = $user->organizations()->whereKey($orgId)->first()?->pivot;
+        return $this->inviteNewTutor($request, $organization, $validated);
+    }
 
-        if ($existingMembership && $existingMembership->membership_status === 'active' && !empty($existingMembership->is_trainer)) {
+    protected function promoteExistingStaffToTutor(Request $request, Organization $organization, int $userId)
+    {
+        $orgId = (int) $organization->id;
+
+        $user = User::query()->findOrFail($userId);
+        $membership = $this->organizationMembership($orgId, $user->id);
+
+        abort_unless($membership, 404, 'Organization membership record not found.');
+
+        $membership->update([
+            'is_trainer' => true,
+        ]);
+
+        TrainerProfile::query()->firstOrCreate([
+            'organization_user_id' => $membership->id,
+        ]);
+
+        Mail::to($user->email)->send(new TutorAddedMail(
+            organization: $organization,
+            user: $user,
+            addedBy: $request->user()
+        ));
+
+        return redirect()->route('admin.trainers.index')
+            ->with('success', 'Trainer added. Notification email sent.');
+    }
+
+    protected function inviteExistingUserToTutor(Request $request, Organization $organization, int $userId)
+    {
+        $orgId = (int) $organization->id;
+
+        $user = User::query()->findOrFail($userId);
+        $membership = $this->organizationMembership($orgId, $user->id);
+
+        if ($membership && !empty($membership->is_trainer) && $membership->membership_status === 'active') {
             return back()->with('error', 'User is already an active trainer in this organization.');
         }
 
-        $pivotData = [
-            'is_employee' => false,
-            'is_trainer' => true,
-
-            'is_org_admin' => (bool) ($existingMembership?->is_org_admin ?? false),
-            'is_sub_admin' => (bool) ($existingMembership?->is_sub_admin ?? false),
-            'can_manage_courses' => (bool) ($existingMembership?->can_manage_courses ?? false),
-            'can_manage_reporting' => (bool) ($existingMembership?->can_manage_reporting ?? false),
-
+        $pivotData = array_merge($this->baseTrainerPivotData(), [
             'membership_status' => 'pending',
+            'onboarding_stage' => 'invited',
             'membership_confirmed_at' => null,
             'membership_confirmed_by_user_id' => null,
-            'onboarding_stage' => 'invited',
+        ]);
 
-            'phone' => $validated['phone'] ?? null,
-        ];
-
-        if ($existingMembership) {
-            $user->organizations()->updateExistingPivot($orgId, $pivotData);
+        if ($membership) {
+            $membership->update($pivotData);
         } else {
             $user->organizations()->attach($orgId, $pivotData);
         }
 
-        // reload membership pivot for its ID (org_user_id)
-        $membershipModel = \App\Models\OrganizationUser::query()
-            ->where('organization_id', $orgId)
-            ->where('user_id', $user->id)
-            ->first();
+        $membershipModel = $this->organizationMembership($orgId, $user->id);
 
         abort_unless($membershipModel, 500, 'Organization membership record not found after attach/update.');
 
@@ -236,21 +218,73 @@ class AdminTrainerController extends Controller
             'status' => 'pending',
         ]);
 
-        $token = Str::random(64);
+        $invitation = $this->createOrRefreshInvitation(
+            organization: $organization,
+            user: $user,
+            inviteType: 'existing_user_confirmation',
+            invitedByUserId: $request->user()?->id
+        );
 
-        $invitation = OrganizationInvitation::query()->updateOrCreate(
+        $acceptUrl = route('org.invitations.accept', ['token' => $invitation->token]);
+
+        Mail::to($user->email)->send(new TutorInvitationMail($invitation->load('organization'), $acceptUrl));
+
+        return redirect()->route('admin.trainers.index')->with('success', 'Tutor invitation sent.');
+    }
+
+    protected function inviteNewTutor(Request $request, Organization $organization, array $validated)
+    {
+        $orgId = (int) $organization->id;
+        $email = mb_strtolower($validated['email']);
+
+        $user = User::query()->firstOrCreate(
+            ['email' => $email],
             [
-                'organization_id' => $orgId,
-                'email' => $user->email,
-                'role' => 'tutor',
-            ],
-            [
-                'invited_by_user_id' => $request->user()?->id,
-                'token' => $token,
-                'expires_at' => now()->addDays(7),
-                'accepted_at' => null,
-                'meta' => ['invite_type' => 'tutor'],
+                'name' => $validated['name'],
+                'password' => Str::password(24),
             ]
+        );
+
+        if ($user->name !== $validated['name']) {
+            $user->name = $validated['name'];
+            $user->save();
+        }
+
+        $membership = $this->organizationMembership($orgId, $user->id);
+
+        if ($membership && $membership->membership_status === 'active' && !empty($membership->is_trainer)) {
+            return back()->with('error', 'User is already an active trainer in this organization.');
+        }
+
+        $pivotData = array_merge($this->baseTrainerPivotData(), [
+            'membership_status' => 'pending',
+            'onboarding_stage' => 'invited',
+            'phone' => $validated['phone'] ?? null,
+            'membership_confirmed_at' => null,
+            'membership_confirmed_by_user_id' => null,
+        ]);
+
+        if ($membership) {
+            $membership->update($pivotData);
+        } else {
+            $user->organizations()->attach($orgId, $pivotData);
+        }
+
+        $membershipModel = $this->organizationMembership($orgId, $user->id);
+
+        abort_unless($membershipModel, 500, 'Organization membership record not found after attach/update.');
+
+        TrainerProfile::query()->firstOrCreate([
+            'organization_user_id' => $membershipModel->id,
+        ], [
+            'status' => 'pending',
+        ]);
+
+        $invitation = $this->createOrRefreshInvitation(
+            organization: $organization,
+            user: $user,
+            inviteType: $user->wasRecentlyCreated ? 'new_user_account_setup' : 'existing_user_confirmation',
+            invitedByUserId: $request->user()?->id
         );
 
         $acceptUrl = route('org.invitations.accept', ['token' => $invitation->token]);
@@ -258,6 +292,48 @@ class AdminTrainerController extends Controller
         Mail::to($user->email)->send(new TutorInvitationMail($invitation->load('organization'), $acceptUrl));
 
         return redirect()->route('admin.trainers.index')->with('success', 'Tutor invited as pending. Invitation sent.');
+    }
+
+    protected function organizationMembership(int $orgId, int $userId): ?OrganizationUser
+    {
+        return OrganizationUser::query()
+            ->where('organization_id', $orgId)
+            ->where('user_id', $userId)
+            ->first();
+    }
+
+    protected function baseTrainerPivotData(): array
+    {
+        return [
+            'is_employee' => false,
+            'is_trainer' => true,
+            'is_org_admin' => false,
+            'is_sub_admin' => false,
+            'can_manage_courses' => false,
+            'can_manage_reporting' => false,
+        ];
+    }
+
+    protected function createOrRefreshInvitation(Organization $organization, User $user, string $inviteType, ?int $invitedByUserId): OrganizationInvitation
+    {
+        $token = Str::random(64);
+
+        return OrganizationInvitation::query()->updateOrCreate(
+            [
+                'organization_id' => $organization->id,
+                'email' => $user->email,
+                'role' => 'tutor',
+            ],
+            [
+                'invited_by_user_id' => $invitedByUserId,
+                'token' => $token,
+                'expires_at' => now()->addDays(7),
+                'accepted_at' => null,
+                'meta' => [
+                    'invite_type' => $inviteType,
+                ],
+            ]
+        );
     }
 
     public function show($id)
