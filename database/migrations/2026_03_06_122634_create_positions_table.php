@@ -15,16 +15,21 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            // NOTE: departments table is created in a later migration (timestamp order),
-            // so we can't add an FK constraint here without breaking `migrate:fresh`.
-            // We add the foreign key in the departments migration after both tables exist.
-            $table->unsignedBigInteger('department_id');
+            $table->foreignId('department_id')->nullable()->constrained('departments')->nullOnDelete();
 
             $table->string('name');
             $table->string('slug');
 
             // Minimum months in this position before eligible to move
             $table->unsignedSmallInteger('min_months_in_role')->default(0);
+
+            $table->text('responsibilities')->nullable();
+            $table->unsignedInteger('level')->default(1);
+            $table->string('role_id')->nullable();
+            $table->unsignedInteger('duration_before_promotion')->nullable();
+            $table->enum('duration_before_promotion_type', ['DAYS', 'MONTHS', 'YEARS'])->nullable();
+            $table->string('reports_to')->nullable();
+            $table->string('added_by')->nullable();
 
             // Uniqueness only within a tenant
             $table->unique(['organization_id', 'slug']);
