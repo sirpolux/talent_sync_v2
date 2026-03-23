@@ -15,6 +15,7 @@ use App\Http\Controllers\AdminSkillGapController;
 use App\Http\Controllers\AdminTrainingProgramController;
 use App\Http\Controllers\AdminTrainingRequestController;
 use App\Http\Controllers\AdminTrainerController;
+use App\Http\Controllers\TutorDashboardController;
 use App\Http\Controllers\AdminReportingController;
 use App\Http\Controllers\AdminEmployeeController;
 use App\Http\Controllers\AdminStaffAssignmentController;
@@ -88,9 +89,16 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
         Route::get('/notifications', fn () => Inertia::render('Staff/Notifications/Index'))->name('notifications.index');
     });
 
-    Route::get('/trainer', function () {
-        return Inertia::render('Trainer/Dashboard');
-    })->name('trainer.dashboard');
+    Route::prefix('trainer')->name('trainer.')->group(function () {
+        Route::get('/', [TutorDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/skills', [TutorDashboardController::class, 'skills'])->name('skills.index');
+        Route::get('/requests', [TutorDashboardController::class, 'requests'])->name('requests.index');
+        Route::get('/sessions', [TutorDashboardController::class, 'sessions'])->name('sessions.index');
+        Route::get('/progress', [TutorDashboardController::class, 'progress'])->name('progress.index');
+        Route::get('/assessments', [TutorDashboardController::class, 'assessments'])->name('assessments.index');
+        Route::get('/messages', [TutorDashboardController::class, 'messages'])->name('messages.index');
+        Route::get('/notifications', [TutorDashboardController::class, 'notifications'])->name('notifications.index');
+    });
 });
 
 Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(function () {
