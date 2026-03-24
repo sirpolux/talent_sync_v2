@@ -100,10 +100,10 @@ Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
         Route::get('/notifications', [TutorDashboardController::class, 'notifications'])->name('notifications.index');
     });
 
-    Route::prefix('admin/trainers')->name('admin.trainers.')->group(function () {
-        // Route::get('{trainer}', [AdminTrainerController::class, 'show'])->name('show');
-        Route::get('{trainer}/skills', [AdminTrainerController::class, 'skills'])->name('skills');
-    });
+    // Route::prefix('admin/trainers')->name('admin.trainers.')->group(function () {
+    //     Route::get('{trainer}/skills', [AdminTrainerController::class, 'skills'])->name('skills');
+    //     Route::post('{trainer}/skills', [AdminTrainerController::class, 'storeSkill'])->name('skills.store');
+    // });
 });
 
 Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(function () {
@@ -152,6 +152,7 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     // TALENT DEVELOPMENT ROUTES
     // ============================================
     Route::name('admin.')->prefix('admin')->group(function () {
+
         Route::resource('skills', AdminSkillController::class);
         Route::resource('competencies', AdminCompetencyController::class)->only(['index']);
 
@@ -206,6 +207,11 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         });
         Route::resource('trainers', AdminTrainerController::class);
 
+        Route::get('trainers/{trainer}/skills', [AdminTrainerController::class, 'skills'])
+            ->name('trainers.skills');
+
+        Route::post('trainers/{trainer}/skills', [AdminTrainerController::class, 'storeSkill'])
+            ->name('trainers.skills.store');
         // ============================================
         // REPORTING & ANALYTICS ROUTES
         // ============================================

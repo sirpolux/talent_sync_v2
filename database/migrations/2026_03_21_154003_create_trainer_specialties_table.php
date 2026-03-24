@@ -19,6 +19,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             $table->string('name');
+            // $table->foreignId('skill_id')->nullable()->constrained('skills')->nullOnDelete();
             $table->text('description')->nullable();
 
             $table->timestamps();

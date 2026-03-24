@@ -15,6 +15,11 @@ class TrainerSpecialty extends Model
         return $this->belongsTo(TrainerProfile::class);
     }
 
+    public function skill(): BelongsTo
+    {
+        return $this->belongsTo(Skill::class);
+    }
+
     public function certifications(): HasMany
     {
         return $this->hasMany(TrainerCertification::class, 'trainer_specialty_id');

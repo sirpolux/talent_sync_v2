@@ -3,22 +3,27 @@ import AdminLayout from "@/Layouts/AdminLayout";
 import Breadcrumbs from "@/Components/Breadcrumbs";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 
-function classNames(...xs) {
-  return xs.filter(Boolean).join(" ");
+function classNames(...classes) {
+  return classes.filter(Boolean).join(" ");
 }
 
 function StatusPill({ value }) {
   const v = value ?? "-";
-  const isActive = v === "active";
-  const isPending = v === "pending";
+
+  const tone =
+    v === "active"
+      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+      : v === "pending"
+        ? "bg-amber-50 text-amber-700 ring-amber-200"
+        : v === "inactive"
+          ? "bg-slate-100 text-slate-700 ring-slate-200"
+          : "bg-gray-50 text-gray-700 ring-gray-200";
 
   return (
     <span
       className={classNames(
         "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset",
-        isActive && "bg-emerald-50 text-emerald-700 ring-emerald-200",
-        isPending && "bg-amber-50 text-amber-700 ring-amber-200",
-        !isActive && !isPending && "bg-gray-50 text-gray-700 ring-gray-200"
+        tone
       )}
     >
       {v}
@@ -30,43 +35,60 @@ function useDebouncedValue(value, delayMs) {
   const [debounced, setDebounced] = useState(value);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
   }, [value, delayMs]);
 
   return debounced;
 }
 
 function Pagination({ links = [] }) {
-  // Laravel paginator links typically include "Previous" and "Next"
   if (!Array.isArray(links) || links.length <= 3) return null;
 
   return (
     <nav className="flex flex-wrap items-center justify-center gap-2 py-3">
-      {links.map((l, idx) => (
+      {links.map((link, index) => (
         <Link
-          key={idx}
-          href={l.url || "#"}
+          key={index}
+          href={link.url || "#"}
           preserveScroll
           className={classNames(
-            "min-w-9 px-3 py-2 rounded-md text-sm transition",
-            l.active
+            "min-w-9 rounded-md px-3 py-2 text-sm transition",
+            link.active
               ? "bg-gray-900 text-white shadow-sm"
-              : l.url
-                ? "bg-white text-gray-700 border hover:bg-gray-50"
-                : "bg-gray-50 text-gray-400 border cursor-not-allowed"
+              : link.url
+                ? "border bg-white text-gray-700 hover:bg-gray-50"
+                : "cursor-not-allowed border bg-gray-50 text-gray-400"
           )}
           onClick={(e) => {
-            if (!l.url) e.preventDefault();
+            if (!link.url) e.preventDefault();
           }}
-          dangerouslySetInnerHTML={{ __html: l.label }}
+          dangerouslySetInnerHTML={{ __html: link.label }}
         />
       ))}
     </nav>
   );
 }
 
-export default function Index({ trainers, filters }) {
+function FilterSelect({ id, label, value, onChange, children, className = "" }) {
+  return (
+    <div className={className}>
+      <label className="sr-only" htmlFor={id}>
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20"
+      >
+        {children}
+      </select>
+    </div>
+  );
+}
+
+export default function Index({ trainers, filters = {}, statuses = [] }) {
   const { flash } = usePage().props;
 
   const initialQ = filters?.q ?? "";
@@ -76,6 +98,18 @@ export default function Index({ trainers, filters }) {
   const [q, setQ] = useState(initialQ);
   const [status, setStatus] = useState(initialStatus);
   const [perPage, setPerPage] = useState(initialPerPage);
+
+  useEffect(() => {
+    setQ(initialQ);
+  }, [initialQ]);
+
+  useEffect(() => {
+    setStatus(initialStatus);
+  }, [initialStatus]);
+
+  useEffect(() => {
+    setPerPage(initialPerPage);
+  }, [initialPerPage]);
 
   const debouncedQ = useDebouncedValue(q, 350);
 
@@ -93,10 +127,8 @@ export default function Index({ trainers, filters }) {
       preserveScroll: true,
       preserveState: true,
       replace: true,
-      only: ["trainers", "filters", "flash"],
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQ, status, perPage]);
+  }, [debouncedQ, status, perPage, queryParams]);
 
   const data = trainers?.data ?? trainers ?? [];
   const links = trainers?.links ?? [];
@@ -107,97 +139,102 @@ export default function Index({ trainers, filters }) {
   const showMeta =
     typeof total === "number" && typeof from === "number" && typeof to === "number";
 
+  const statusOptions = Array.isArray(statuses) && statuses.length
+    ? statuses
+    : [
+        { value: "active", label: "Active" },
+        { value: "pending", label: "Pending" },
+        { value: "inactive", label: "Inactive" },
+      ];
+
   return (
     <AdminLayout>
       <Head title="Trainers" />
 
       <div className="mb-6">
-        <Breadcrumbs items={[{ label: "Dashboard", href: "admin.dashboard" }, { label: "Trainers" }]} />
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "admin.dashboard" },
+            { label: "Trainers" },
+          ]}
+        />
 
-        <div className="mt-4 flex items-start justify-between gap-4">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Trainers</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Manage trainers, invite new tutors, and track onboarding status.
+              Manage trainers, search records, and review onboarding status.
             </p>
           </div>
 
           <Link
             href={route("admin.trainers.create")}
-            className="inline-flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-black focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2"
+            className="inline-flex items-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-900"
           >
-            <span className="text-lg leading-none">+</span>
             Add Trainer
           </Link>
         </div>
       </div>
 
       {flash?.success ? (
-        <div className="mb-6">
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm">
+        <div className="mb-6 max-w-3xl">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
             {flash.success}
           </div>
         </div>
       ) : null}
 
       {flash?.error ? (
-        <div className="mb-6">
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 shadow-sm">
+        <div className="mb-6 max-w-3xl">
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
             {flash.error}
           </div>
         </div>
       ) : null}
 
-      <div className="rounded-xl border bg-white shadow-sm">
-        {/* Filters (material-ish “toolbar”) */}
-        <div className="flex flex-col gap-3 border-b bg-gray-50/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="w-full sm:max-w-md">
+      <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b bg-gray-50 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="grid flex-1 gap-3 md:grid-cols-[minmax(0,1fr)_180px_140px]">
+            <div>
               <label className="sr-only" htmlFor="q">
-                Search
+                Search trainers
               </label>
-              <div className="relative">
-                <input
-                  id="q"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search name or email…"
-                  className="w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20"
-                />
-              </div>
+              <input
+                id="q"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search name, email, or headline…"
+                className="w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20"
+              />
             </div>
 
-            <div className="w-full sm:w-56">
-              <label className="sr-only" htmlFor="status">
-                Status
-              </label>
-              <select
-                id="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20"
-              >
-                <option value="all">All statuses</option>
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-              </select>
-            </div>
+            <FilterSelect
+              id="status"
+              label="Status"
+              value={status}
+              onChange={setStatus}
+            >
+              <option value="all">All statuses</option>
+              {statusOptions.map((option) => (
+                <option
+                  key={option.value ?? option}
+                  value={option.value ?? option}
+                >
+                  {option.label ?? option}
+                </option>
+              ))}
+            </FilterSelect>
 
-            <div className="w-full sm:w-40">
-              <label className="sr-only" htmlFor="per_page">
-                Per page
-              </label>
-              <select
-                id="per_page"
-                value={perPage}
-                onChange={(e) => setPerPage(e.target.value)}
-                className="w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20"
-              >
-                <option value="10">10 / page</option>
-                <option value="25">25 / page</option>
-                <option value="50">50 / page</option>
-              </select>
-            </div>
+            <FilterSelect
+              id="per_page"
+              label="Per page"
+              value={perPage}
+              onChange={setPerPage}
+            >
+              <option value="10">10 / page</option>
+              <option value="25">25 / page</option>
+              <option value="50">50 / page</option>
+            </FilterSelect>
           </div>
 
           <button
@@ -213,7 +250,6 @@ export default function Index({ trainers, filters }) {
           </button>
         </div>
 
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-white">
@@ -222,7 +258,7 @@ export default function Index({ trainers, filters }) {
                   Trainer
                 </th>
                 <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Status
+                  Membership
                 </th>
                 <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
                   Department
@@ -234,7 +270,7 @@ export default function Index({ trainers, filters }) {
                   Headline
                 </th>
                 <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Trainer Status
+                  Profile Status
                 </th>
                 <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
                   Actions
@@ -250,31 +286,33 @@ export default function Index({ trainers, filters }) {
                   </td>
                 </tr>
               ) : (
-                data.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-50/60">
+                data.map((trainer) => (
+                  <tr key={trainer.id} className="hover:bg-gray-50/60">
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
-                        <span className="font-medium text-gray-900">{t.name}</span>
-                        <span className="text-xs text-gray-600">{t.email}</span>
+                        <span className="font-medium text-gray-900">{trainer.name}</span>
+                        <span className="text-xs text-gray-600">{trainer.email}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusPill value={t.membership_status} />
+                      <StatusPill value={trainer.membership_status} />
                     </td>
-                    <td className="px-4 py-3">{t.department_name ?? "-"}</td>
-                    <td className="px-4 py-3">{t.position_name ?? "-"}</td>
-                    <td className="px-4 py-3">{t.headline ?? "-"}</td>
-                    <td className="px-4 py-3">{t.trainer_status ?? "-"}</td>
+                    <td className="px-4 py-3">{trainer.department_name ?? "-"}</td>
+                    <td className="px-4 py-3">{trainer.position_name ?? "-"}</td>
+                    <td className="px-4 py-3">{trainer.headline ?? "-"}</td>
+                    <td className="px-4 py-3">
+                      <StatusPill value={trainer.trainer_status ?? trainer.profile?.status} />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
                         <Link
-                          href={route("admin.trainers.show", t.id)}
+                          href={route("admin.trainers.show", trainer.id)}
                           className="inline-flex items-center rounded-md border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
                         >
                           View
                         </Link>
                         <Link
-                          href={route("admin.trainers.skills", t.id)}
+                          href={route("admin.trainers.skills", trainer.id)}
                           className="inline-flex items-center rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-black"
                         >
                           Skills
@@ -288,7 +326,6 @@ export default function Index({ trainers, filters }) {
           </table>
         </div>
 
-        {/* Footer / pagination */}
         <div className="border-t bg-gray-50/40 px-4">
           <div className="flex flex-col items-center justify-between gap-2 py-3 sm:flex-row">
             {showMeta ? (
