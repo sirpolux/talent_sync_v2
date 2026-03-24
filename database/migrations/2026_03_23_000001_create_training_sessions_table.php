@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('training_sessions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('organization_user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('organization_user_id')->constrained('organization_user')->cascadeOnDelete();
             $table->foreignId('trainer_profile_id')->constrained()->cascadeOnDelete();
             $table->foreignId('skill_id')->constrained()->cascadeOnDelete();
             $table->string('title');

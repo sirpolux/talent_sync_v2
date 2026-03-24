@@ -46,7 +46,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-    Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
+Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
     Route::prefix('staff')->name('staff.')->group(function () {
         Route::get('/', function () {
             return Inertia::render('Staff/Dashboard');
@@ -56,13 +56,13 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
         Route::get('/account/profile', [\App\Http\Controllers\StaffAccountController::class, 'profile'])
             ->name('account.profile');
 
-        Route::get('/account/password', fn () => Inertia::render('Staff/Account/Password'))
+        Route::get('/account/password', fn() => Inertia::render('Staff/Account/Password'))
             ->name('account.password');
 
         // Training
-        Route::get('/training', fn () => Inertia::render('Staff/Training/Index'))->name('training.index');
-        Route::get('/training/available', fn () => Inertia::render('Staff/Training/Available'))->name('training.available');
-        Route::get('/training/requests', fn () => Inertia::render('Staff/Training/Requests'))->name('training.requests');
+        Route::get('/training', fn() => Inertia::render('Staff/Training/Index'))->name('training.index');
+        Route::get('/training/available', fn() => Inertia::render('Staff/Training/Available'))->name('training.available');
+        Route::get('/training/requests', fn() => Inertia::render('Staff/Training/Requests'))->name('training.requests');
 
         // Skills & Evidence
         Route::get('/skills', [StaffSkillController::class, 'index'])->name('skills.index');
@@ -74,19 +74,19 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
         Route::patch('/skills/evidence/{evidence}/verify', [StaffSkillController::class, 'markEvidenceVerified'])
             ->name('skills.evidence.verify');
 
-        Route::get('/skills/upload', fn () => Inertia::render('Staff/Skills/Upload'))->name('skills.upload');
+        Route::get('/skills/upload', fn() => Inertia::render('Staff/Skills/Upload'))->name('skills.upload');
 
         // Career & Promotion
-        Route::get('/promotions/eligibility', fn () => Inertia::render('Staff/Promotions/Eligibility'))->name('promotions.eligibility');
-        Route::get('/promotions', fn () => Inertia::render('Staff/Promotions/Index'))->name('promotions.index');
-        Route::get('/promotions/apply', fn () => Inertia::render('Staff/Promotions/Create'))->name('promotions.create');
+        Route::get('/promotions/eligibility', fn() => Inertia::render('Staff/Promotions/Eligibility'))->name('promotions.eligibility');
+        Route::get('/promotions', fn() => Inertia::render('Staff/Promotions/Index'))->name('promotions.index');
+        Route::get('/promotions/apply', fn() => Inertia::render('Staff/Promotions/Create'))->name('promotions.create');
 
         // Leave
-        Route::get('/leave', fn () => Inertia::render('Staff/Leave/Index'))->name('leave.index');
-        Route::get('/leave/apply', fn () => Inertia::render('Staff/Leave/Create'))->name('leave.create');
+        Route::get('/leave', fn() => Inertia::render('Staff/Leave/Index'))->name('leave.index');
+        Route::get('/leave/apply', fn() => Inertia::render('Staff/Leave/Create'))->name('leave.create');
 
         // Notifications
-        Route::get('/notifications', fn () => Inertia::render('Staff/Notifications/Index'))->name('notifications.index');
+        Route::get('/notifications', fn() => Inertia::render('Staff/Notifications/Index'))->name('notifications.index');
     });
 
     Route::prefix('trainer')->name('trainer.')->group(function () {
@@ -101,7 +101,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     });
 
     Route::prefix('admin/trainers')->name('admin.trainers.')->group(function () {
-        Route::get('{trainer}', [AdminTrainerController::class, 'show'])->name('show');
+        // Route::get('{trainer}', [AdminTrainerController::class, 'show'])->name('show');
         Route::get('{trainer}/skills', [AdminTrainerController::class, 'skills'])->name('skills');
     });
 });
@@ -140,7 +140,7 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     // Route::delete('/admin/departments/{department}', [AdminDepartmentController::class, 'destroy'])->name('admin.departments.destroy');
 
     // Positions
-    Route::name('admin.')->group(function(){
+    Route::name('admin.')->group(function () {
         Route::resource('/admin/positions', AdminPositionController::class);
     });
 
@@ -151,7 +151,7 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     // ============================================
     // TALENT DEVELOPMENT ROUTES
     // ============================================
-    Route::name('admin.')->prefix('admin')->group(function() {
+    Route::name('admin.')->prefix('admin')->group(function () {
         Route::resource('skills', AdminSkillController::class);
         Route::resource('competencies', AdminCompetencyController::class)->only(['index']);
 
@@ -187,7 +187,7 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         Route::resource('career-paths', AdminCareerPathController::class);
         Route::resource('transitions', AdminTransitionController::class);
         Route::resource('hierarchies', AdminHierarchyController::class);
-        Route::prefix('promotions')->name('promotions.')->group(function() {
+        Route::prefix('promotions')->name('promotions.')->group(function () {
             Route::get('eligible', [AdminPromotionController::class, 'eligible'])->name('eligible');
             Route::get('pending', [AdminPromotionController::class, 'pending'])->name('pending');
             Route::get('history', [AdminPromotionController::class, 'history'])->name('history');
@@ -197,9 +197,9 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         // ============================================
         // TRAINING & DEVELOPMENT ROUTES
         // ============================================
-        Route::prefix('training')->name('training.')->group(function() {
+        Route::prefix('training')->name('training.')->group(function () {
             Route::resource('programs', AdminTrainingProgramController::class);
-            Route::prefix('requests')->name('requests.')->group(function() {
+            Route::prefix('requests')->name('requests.')->group(function () {
                 Route::get('/', [AdminTrainingRequestController::class, '__invoke'])->name('index');
                 Route::get('pending', [AdminTrainingRequestController::class, 'pending'])->name('pending');
             });
@@ -209,7 +209,7 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
         // ============================================
         // REPORTING & ANALYTICS ROUTES
         // ============================================
-        Route::prefix('reporting')->name('reporting.')->group(function() {
+        Route::prefix('reporting')->name('reporting.')->group(function () {
             Route::get('dashboard', [AdminReportingController::class, 'dashboard'])->name('dashboard');
             Route::get('promotions', [AdminReportingController::class, 'promotions'])->name('promotions');
             Route::get('skills', [AdminReportingController::class, 'skills'])->name('skills');
@@ -240,7 +240,7 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
             Route::patch('skills/{allocation}/unverify', [AdminEmployeeSkillController::class, 'unverifyAllocation'])
                 ->name('skills.unverify');
         });
-        Route::prefix('staff')->name('staff.')->group(function() {
+        Route::prefix('staff')->name('staff.')->group(function () {
             Route::resource('assignments', AdminStaffAssignmentController::class);
         });
 
@@ -272,4 +272,4 @@ Route::get('/org/invitations/{token}/accept', [OrganizationInvitationController:
 Route::post('/org/invitations/{token}/accept', [OrganizationInvitationController::class, 'acceptStore'])
     ->name('org.invitations.accept.store');
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

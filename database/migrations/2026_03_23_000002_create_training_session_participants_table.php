@@ -12,10 +12,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
             $table->foreignId('training_session_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('organization_user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('organization_user_id')->constrained('organization_user')->cascadeOnDelete();
             $table->timestamps();
 
-            $table->unique(['training_session_id', 'organization_user_id']);
+            $table->unique(['training_session_id', 'organization_user_id'], 'training_session_participants_unique');
         });
     }
 

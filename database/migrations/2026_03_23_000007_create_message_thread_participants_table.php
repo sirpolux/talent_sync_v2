@@ -12,10 +12,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('message_thread_id')->constrained()->cascadeOnDelete();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('organization_user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('organization_user_id')->constrained('organization_user')->cascadeOnDelete();
             $table->timestamps();
 
-            $table->unique(['message_thread_id', 'organization_user_id']);
+            $table->unique(['message_thread_id', 'organization_user_id'], 'mtp_unique');
         });
     }
 
