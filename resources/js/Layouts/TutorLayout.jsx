@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link, usePage } from "@inertiajs/react";
+import { Link, router, usePage } from "@inertiajs/react";
 import {
   Bell,
   BookOpen,
@@ -17,6 +17,7 @@ import {
   FolderKanban,
   UserCog,
   X,
+  LogOut,
 } from "lucide-react";
 
 function cn(...classes) {
@@ -107,7 +108,7 @@ export default function TutorLayout({
   const currentUrl = usePage().url;
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [openMenus, setOpenMenus] = useState(new Set(["overview", "training"]));
+  const [openMenus, setOpenMenus] = useState(new Set(["overview", "training", "skills"]));
 
   const menuItems = useMemo(
     () => [
@@ -121,7 +122,10 @@ export default function TutorLayout({
         key: "skills",
         icon: <GraduationCap className="w-5 h-5" />,
         label: "Skills & Certifications",
-        href: "trainer.skills.index",
+        children: [
+          { key: "skills.index", label: "Skills", href: "trainer.skills.index" },
+          { key: "skills.certifications", label: "Certifications", href: "trainer.certifications.index" },
+        ],
       },
       {
         key: "training",
@@ -194,6 +198,10 @@ export default function TutorLayout({
     organization?.current?.company_name ||
     organization?.current?.organization_name ||
     "No active organization";
+
+  const handleLogout = () => {
+    router.post(route("logout"));
+  };
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-blue-50 to-emerald-50 overflow-hidden font-sans relative">
@@ -281,23 +289,42 @@ export default function TutorLayout({
             </h2>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              className="relative p-2 rounded-md hover:bg-gray-100 transition"
-              aria-label="Notifications"
-            >
-              <Bell className="w-5 h-5 text-gray-600 hover:text-[#1E3A8A]" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full"></span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="relative p-2 rounded-md hover:bg-gray-100 transition"
+                aria-label="Notifications"
+              >
+                <Bell className="w-5 h-5 text-gray-600 hover:text-[#1E3A8A]" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full"></span>
+              </button>
 
-            <div
-              className="w-9 h-9 bg-gradient-to-br from-[#1E3A8A] to-[#059669] text-white flex items-center justify-center rounded-full font-semibold"
-              title={displayName}
-            >
-              {initials}
+              <Link
+                as="button"
+                method="post"
+                href={route("logout")}
+                className="p-2 rounded-md hover:bg-gray-100 transition"
+                aria-label="Logout"
+              >
+                <LogOut className="w-5 h-5 text-gray-600 hover:text-red-600 transition" />
+              </Link>
+
+              {/* <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100 hover:border-red-300"
+                aria-label="Logout"
+              >
+                Logout
+              </button> */}
+
+              <div
+                className="w-9 h-9 bg-gradient-to-br from-[#1E3A8A] to-[#059669] text-white flex items-center justify-center rounded-full font-semibold"
+                title={displayName}
+              >
+                {initials}
+              </div>
             </div>
-          </div>
         </header>
 
         <main className="flex-1 overflow-y-scroll h-screen p-4 sm:p-6 relative bg-gray-50 bg-cover bg-center">

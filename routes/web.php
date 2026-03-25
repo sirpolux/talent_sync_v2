@@ -92,6 +92,14 @@ Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
     Route::prefix('trainer')->name('trainer.')->group(function () {
         Route::get('/', [TutorDashboardController::class, 'index'])->name('dashboard');
         Route::get('/skills', [TutorDashboardController::class, 'skills'])->name('skills.index');
+        Route::get('/skills/create', [\App\Http\Controllers\TutorSkillController::class, 'create'])->name('skills.create');
+        Route::post('/skills', [\App\Http\Controllers\TutorSkillController::class, 'store'])->name('skills.store');
+        Route::get('/skills/{specialty}', [\App\Http\Controllers\TutorSkillController::class, 'show'])->name('skills.show');
+
+        Route::get('/certifications', [\App\Http\Controllers\TutorSkillController::class, 'certifications'])->name('certifications.index');
+        Route::get('/certifications/create', [\App\Http\Controllers\TutorSkillController::class, 'createCertification'])->name('certifications.create');
+        Route::post('/certifications', [\App\Http\Controllers\TutorSkillController::class, 'storeCertification'])->name('certifications.store');
+
         Route::get('/requests', [TutorDashboardController::class, 'requests'])->name('requests.index');
         Route::get('/sessions', [TutorDashboardController::class, 'sessions'])->name('sessions.index');
         Route::get('/progress', [TutorDashboardController::class, 'progress'])->name('progress.index');

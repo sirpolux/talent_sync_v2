@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\TutorAddedMail;
+use App\Mail\TutorInvitationMail;
+use App\Models\OrganizationInvitation;
 use App\Models\OrganizationUser;
 use App\Models\Skill;
 use App\Models\TrainerProfile;
@@ -10,6 +13,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -63,6 +67,7 @@ class AdminTrainerController extends Controller
                     'status' => $trainer->status,
                     'name' => $trainer->organizationUser?->user?->name,
                     'email' => $trainer->organizationUser?->user?->email,
+                    'membership_status' => $trainer->organizationUser?->membership_status,
                     'is_employee' => (bool) ($trainer->organizationUser?->is_employee ?? false),
                     'created_at' => $trainer->created_at,
                     'updated_at' => $trainer->updated_at,
@@ -122,7 +127,7 @@ class AdminTrainerController extends Controller
                 return back()->withErrors(['user_id' => 'Selected staff member must already be an employee.']);
             }
 
-            TrainerProfile::query()->firstOrCreate(
+            $trainer = TrainerProfile::query()->firstOrCreate(
                 ['organization_user_id' => $membership->id],
                 [
                     'status' => 'active',
@@ -133,6 +138,14 @@ class AdminTrainerController extends Controller
                 $membership->is_trainer = true;
                 $membership->save();
             }
+
+            Mail::to($membership->user->email)->send(
+                new TutorAddedMail(
+                    organization: $membership->organization,
+                    user: $membership->user,
+                    addedBy: $request->user()
+                )
+            );
 
             return redirect()
                 ->route('admin.trainers.index')
@@ -183,7 +196,7 @@ class AdminTrainerController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        TrainerProfile::query()->firstOrCreate(
+        $trainer = TrainerProfile::query()->firstOrCreate(
             ['organization_user_id' => $organizationUser->id],
             [
                 'status' => 'pending',
@@ -194,6 +207,35 @@ class AdminTrainerController extends Controller
             $organizationUser->phone = $data['phone'];
             $organizationUser->save();
         }
+
+        $existingInvitation = OrganizationInvitation::query()
+            ->where('organization_id', $orgId)
+            ->whereRaw('LOWER(email) = ?', [mb_strtolower($user->email)])
+            ->where('role', 'trainer')
+            ->whereNull('accepted_at')
+            ->latest('id')
+            ->first();
+
+        $invitation = $existingInvitation ?: OrganizationInvitation::query()->create([
+            'organization_id' => $orgId,
+            'invited_by_user_id' => $request->user()?->id,
+            'email' => $user->email,
+            'role' => 'trainer',
+            'meta' => [
+                'invite_type' => 'new_user_account_setup',
+                'is_trainer' => true,
+                'trainer_profile_id' => $trainer->id,
+                'organization_user_id' => $organizationUser->id,
+            ],
+            'token' => (string) Str::uuid(),
+            'expires_at' => now()->addDays(7),
+        ]);
+
+        $acceptUrl = route('org.invitations.accept', ['token' => $invitation->token]);
+
+        Mail::to($user->email)->send(
+            new TutorInvitationMail($invitation, $acceptUrl)
+        );
 
         return redirect()
             ->route('admin.trainers.index')
@@ -274,6 +316,15 @@ class AdminTrainerController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'type', 'organization_id']);
 
+        $excludedDegree = Skill::query()
+            ->where('is_active', true)
+            ->where(function (Builder $query) use ($orgId) {
+                $query->whereNull('organization_id')
+                    ->orWhere('organization_id', $orgId);
+            })
+            ->where('type', 'degree')
+            ->count();
+
         return Inertia::render('Admin/Trainers/Skills', [
             'trainer' => [
                 'id' => $trainer->id,
@@ -285,6 +336,7 @@ class AdminTrainerController extends Controller
             ],
             'assignedSkills' => $assignedSkills,
             'availableSkills' => $availableSkills,
+            'excludedDegreeCount' => $excludedDegree,
         ]);
     }
 
@@ -297,13 +349,13 @@ class AdminTrainerController extends Controller
             'skill_id' => [
                 'required',
                 'integer',
-                Rule::exists('skills', 'id')->where(function (Builder $query) use ($orgId) {
+                Rule::exists('skills', 'id')->where(function ( $query) use ($orgId) {
                     $query->where('is_active', true)
-                        ->where(function (Builder $scope) use ($orgId) {
+                        ->where(function ($scope) use ($orgId) {
                             $scope->whereNull('organization_id')
                                 ->orWhere('organization_id', $orgId);
                         })
-                        ->where(function (Builder $typeQuery) {
+                        ->where(function ($typeQuery) {
                             $typeQuery->whereNull('type')
                                 ->orWhere('type', '!=', 'degree');
                         });

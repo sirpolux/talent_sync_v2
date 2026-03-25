@@ -81,18 +81,18 @@ function AssignedSkillCard({ skill }) {
   );
 }
 
-export default function Skills({ trainer, skills = [], availableSkills = [] }) {
+export default function Skills({ trainer, assignedSkills = [], availableSkills = [] , excludedDegreeCount = 0}) {
   const assignForm = useForm({
     skill_id: "",
   });
 
   const assignedSkillIds = useMemo(() => {
     return new Set(
-      (skills || [])
+      (assignedSkills || [])
         .map((skill) => Number(skill?.skill_id ?? skill?.id))
         .filter((id) => Number.isFinite(id))
     );
-  }, [skills]);
+  }, [assignedSkills]);
 
   const assignableSkills = useMemo(() => {
     return (availableSkills || []).filter((skill) => {
@@ -102,7 +102,7 @@ export default function Skills({ trainer, skills = [], availableSkills = [] }) {
     });
   }, [availableSkills, assignedSkillIds]);
 
-  const assignedCount = skills?.length ?? 0;
+  const assignedCount = assignedSkills?.length ?? 0;
 
   return (
     <AdminLayout>
@@ -147,7 +147,10 @@ export default function Skills({ trainer, skills = [], availableSkills = [] }) {
         <FlashMessage />
 
         <div className="grid gap-4 md:grid-cols-3">
-          <StatCard title="Assigned Skills" value={assignedCount} hint="Already linked to this trainer" />
+          <StatCard 
+            title="Assigned Skills" 
+            value={assignedCount} 
+            hint="Already linked to this trainer" />
           <StatCard
             title="Assignable Skills"
             value={assignableSkills.length}
@@ -155,7 +158,7 @@ export default function Skills({ trainer, skills = [], availableSkills = [] }) {
           />
           <StatCard
             title="Excluded Degrees"
-            value={(availableSkills || []).filter((skill) => skill?.type === "degree").length}
+            value={excludedDegreeCount}
             hint="Not shown in the assignment list"
           />
         </div>
@@ -171,8 +174,8 @@ export default function Skills({ trainer, skills = [], availableSkills = [] }) {
             </div>
 
             <div className="mt-4 grid gap-3">
-              {skills.length ? (
-                skills.map((skill) => <AssignedSkillCard key={skill.id ?? skill.skill_id} skill={skill} />)
+              {assignedSkills.length ? (
+                assignedSkills.map((skill) => <AssignedSkillCard key={skill.id ?? skill.skill_id} skill={skill} />)
               ) : (
                 <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
                   No skills assigned yet.
@@ -181,7 +184,7 @@ export default function Skills({ trainer, skills = [], availableSkills = [] }) {
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm max-h-[400px] overflow-y-auto"> 
             <h2 className="text-lg font-semibold text-slate-900">Assign a Skill</h2>
             <p className="mt-1 text-sm text-slate-600">
               Choose an active skill from the current organization or global skills. Degree skills are excluded.
