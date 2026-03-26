@@ -16,6 +16,7 @@ use App\Http\Controllers\AdminTrainingProgramController;
 use App\Http\Controllers\AdminTrainingRequestController;
 use App\Http\Controllers\AdminTrainerController;
 use App\Http\Controllers\TutorDashboardController;
+use App\Http\Controllers\TutorSessionController;
 use App\Http\Controllers\AdminReportingController;
 use App\Http\Controllers\AdminEmployeeController;
 use App\Http\Controllers\AdminStaffAssignmentController;
@@ -102,7 +103,25 @@ Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
         Route::post('/certifications', [\App\Http\Controllers\TutorSkillController::class, 'storeCertification'])->name('certifications.store');
 
         Route::get('/requests', [TutorDashboardController::class, 'requests'])->name('requests.index');
-        Route::get('/sessions', [TutorDashboardController::class, 'sessions'])->name('sessions.index');
+        Route::get('/sessions', [TutorSessionController::class, 'index'])->name('sessions.index');
+        Route::get('/sessions/create', [TutorSessionController::class, 'create'])->name('sessions.create');
+        Route::get('/sessions/calendar', function () {
+            $user = request()->user();
+
+            return Inertia::render('Tutor/Sessions/Calendar', [
+                'organizationName' => $user?->organization?->name
+                    ?? $user?->organization_name
+                    ?? $user?->company_name
+                    ?? $user?->company
+                    ?? '',
+                'trainerName' => $user?->name ?? '',
+                'defaultSkill' => request('skill', ''),
+                'defaultTitle' => request('title', ''),
+                'defaultDescription' => request('description', ''),
+            ]);
+        })->name('sessions.calendar');
+        Route::post('/sessions', [TutorSessionController::class, 'store'])->name('sessions.store');
+        Route::get('/sessions/{session}', [TutorSessionController::class, 'show'])->name('sessions.show');
         Route::get('/progress', [TutorDashboardController::class, 'progress'])->name('progress.index');
         Route::get('/assessments', [TutorDashboardController::class, 'assessments'])->name('assessments.index');
         Route::get('/messages', [TutorDashboardController::class, 'messages'])->name('messages.index');
