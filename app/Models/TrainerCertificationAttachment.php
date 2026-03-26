@@ -9,10 +9,6 @@ class TrainerCertificationAttachment extends Model
 {
     protected $guarded = [];
 
-    protected $casts = [
-        'metadata' => 'array',
-    ];
-
     public function certification(): BelongsTo
     {
         return $this->belongsTo(TrainerCertification::class, 'trainer_certification_id');

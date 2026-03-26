@@ -278,16 +278,11 @@ class TutorSkillController extends Controller
                 }
 
                 $uploaded = $cloudinary->upload($file, 'trainer_certifications');
+                $imageUrl = (string) Arr::get($uploaded, 'secure_url', Arr::get($uploaded, 'url'));
 
                 $certification->attachments()->create([
-                    'name' => $file->hashName(),
-                    'original_name' => $file->getClientOriginalName(),
-                    'mime_type' => $file->getClientMimeType(),
-                    'file_size' => (string) $file->getSize(),
-                    'cloudinary_public_id' => (string) Arr::get($uploaded, 'public_id'),
-                    'cloudinary_url' => (string) Arr::get($uploaded, 'url'),
-                    'cloudinary_secure_url' => (string) Arr::get($uploaded, 'secure_url'),
-                    'metadata' => $uploaded,
+                    'name' => $file->getClientOriginalName(),
+                    'image_url' => $imageUrl,
                 ]);
             }
         }
@@ -452,15 +447,7 @@ class TutorSkillController extends Controller
             'id' => $attachment->id,
             'trainer_certification_id' => $attachment->trainer_certification_id,
             'name' => $attachment->name,
-            'original_name' => $attachment->original_name,
-            'mime_type' => $attachment->mime_type,
-            'file_size' => $attachment->file_size,
-            'cloudinary_public_id' => $attachment->cloudinary_public_id,
-            'cloudinary_url' => $attachment->cloudinary_url,
-            'cloudinary_secure_url' => $attachment->cloudinary_secure_url,
-            'metadata' => $attachment->metadata,
-            'created_at' => $attachment->created_at,
-            'updated_at' => $attachment->updated_at,
+            'image_url' => $attachment->image_url,
         ];
     }
 }

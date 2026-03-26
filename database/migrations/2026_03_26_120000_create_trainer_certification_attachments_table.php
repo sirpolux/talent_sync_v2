@@ -18,18 +18,16 @@ return new class extends Migration
         Schema::create('trainer_certification_attachments', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('trainer_certification_id')
-                ->constrained('trainer_certifications')
+            $table->unsignedBigInteger('trainer_certification_id');
+
+            $table->foreign('trainer_certification_id', 'tca_cert_fk')
+                ->references('id')
+                ->on('trainer_certifications')
                 ->cascadeOnDelete();
+        
 
             $table->string('name');
-            $table->string('original_name')->nullable();
-            $table->string('mime_type')->nullable();
-            $table->string('file_size')->nullable();
-            $table->string('cloudinary_public_id');
-            $table->string('cloudinary_url');
-            $table->string('cloudinary_secure_url');
-            $table->json('metadata')->nullable();
+            $table->string('image_url');
 
             $table->timestamps();
         });
