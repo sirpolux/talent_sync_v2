@@ -7,9 +7,11 @@ use App\Models\Skill;
 use App\Models\TrainerCertification;
 use App\Models\TrainerProfile;
 use App\Models\TrainerSpecialty;
+use App\Services\CloudinaryService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -45,19 +47,14 @@ class TutorSkillController extends Controller
             ->values()
             ->all();
 
-        $certificationsBySpecialty = $this->trainerSpecialtiesQuery($request, $trainer)
-            ->with(['skill:id,organization_id,name,description,type,category,is_active', 'certifications' => fn ($query) => $query->orderByDesc('created_at')])
-            ->orderBy('name')
+        $certifications = $trainer->certifications()
+            ->with([
+                'specialty.skill:id,organization_id,name,description,type,category,is_active',
+                'attachments',
+            ])
+            ->orderByDesc('created_at')
             ->get()
-            ->map(function (TrainerSpecialty $specialty) {
-                return [
-                    'specialty' => $this->specialtyPayload($specialty),
-                    'certifications' => $specialty->certifications
-                        ->map(fn (TrainerCertification $certification) => $this->certificationPayload($certification))
-                        ->values()
-                        ->all(),
-                ];
-            })
+            ->map(fn (TrainerCertification $certification) => $this->certificationPayload($certification))
             ->values()
             ->all();
 
@@ -66,7 +63,7 @@ class TutorSkillController extends Controller
             'assignedSkills' => $assignedSkills,
             'pendingSkills' => $pendingSkills,
             'availableSkills' => $availableSkills,
-            'certificationsBySpecialty' => $certificationsBySpecialty,
+            'certifications' => $certifications,
         ]);
     }
 
@@ -112,6 +109,10 @@ class TutorSkillController extends Controller
                     $builder->whereNotNull('expires_at')->whereDate('expires_at', '<', now());
                 }
             })
+            ->with([
+                'specialty.skill:id,organization_id,name,description,type,category,is_active',
+                'attachments',
+            ])
             ->orderByDesc('created_at')
             ->paginate((int) $request->integer('per_page', 10))
             ->withQueryString()
@@ -134,25 +135,20 @@ class TutorSkillController extends Controller
         $trainer = $this->resolveTrainerProfile($request);
         $summary = $this->trainerSummary($trainer);
 
-        $specialties = $this->trainerSpecialtiesQuery($request, $trainer)
-            ->with(['skill:id,organization_id,name,description,type,category,is_active', 'certifications' => fn ($query) => $query->orderByDesc('created_at')])
-            ->orderBy('name')
+        $certifications = $trainer->certifications()
+            ->with([
+                'specialty.skill:id,organization_id,name,description,type,category,is_active',
+                'attachments',
+            ])
+            ->orderByDesc('created_at')
             ->get()
-            ->map(function (TrainerSpecialty $specialty) {
-                return [
-                    'specialty' => $this->specialtyPayload($specialty),
-                    'certifications' => $specialty->certifications
-                        ->map(fn (TrainerCertification $certification) => $this->certificationPayload($certification))
-                        ->values()
-                        ->all(),
-                ];
-            })
+            ->map(fn (TrainerCertification $certification) => $this->certificationPayload($certification))
             ->values()
             ->all();
 
         return Inertia::render('Tutor/Certifications/Index', [
             'trainer' => $summary,
-            'specialties' => $specialties,
+            'certifications' => $certifications,
         ]);
     }
 
@@ -184,13 +180,13 @@ class TutorSkillController extends Controller
             'skill_id' => [
                 'required',
                 'integer',
-                Rule::exists('skills', 'id')->where(function (Builder $query) use ($orgId) {
+                Rule::exists('skills', 'id')->where(function ( $query) use ($orgId) {
                     $query->where('is_active', true)
-                        ->where(function (Builder $scope) use ($orgId) {
+                        ->where(function ( $scope) use ($orgId) {
                             $scope->whereNull('organization_id')
                                 ->orWhere('organization_id', $orgId);
                         })
-                        ->where(function (Builder $typeQuery) {
+                        ->where(function ($typeQuery) {
                             $typeQuery->whereNull('type')
                                 ->orWhere('type', '!=', 'degree');
                         });
@@ -201,11 +197,11 @@ class TutorSkillController extends Controller
         $skill = Skill::query()
             ->whereKey((int) $data['skill_id'])
             ->where('is_active', true)
-            ->where(function (Builder $query) use ($orgId) {
+            ->where(function ( $query) use ($orgId) {
                 $query->whereNull('organization_id')
                     ->orWhere('organization_id', $orgId);
             })
-            ->where(function (Builder $query) {
+            ->where(function ( $query) {
                 $query->whereNull('type')
                     ->orWhere('type', '!=', 'degree');
             })
@@ -237,29 +233,64 @@ class TutorSkillController extends Controller
 
         $data = $request->validate([
             'trainer_specialty_id' => [
-                'required',
+                'nullable',
                 'integer',
-                Rule::exists('trainer_specialties', 'id')->where(function (Builder $query) use ($trainer) {
+                Rule::exists('trainer_specialties', 'id')->where(function ($query) use ($trainer) {
                     $query->where('trainer_profile_id', $trainer->id);
                 }),
             ],
-            'title' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255'],
             'issuer' => ['nullable', 'string', 'max:255'],
             'reference_number' => ['nullable', 'string', 'max:255'],
+            'credential_id' => ['nullable', 'string', 'max:255'],
             'issued_at' => ['nullable', 'date'],
             'expires_at' => ['nullable', 'date', 'after_or_equal:issued_at'],
             'notes' => ['nullable', 'string'],
+            'attachments' => ['nullable', 'array'],
+            'attachments.*' => ['file', 'max:10240'],
         ]);
 
-        TrainerCertification::query()->create([
-            'trainer_specialty_id' => $data['trainer_specialty_id'],
-            'title' => $data['title'],
+        $trainerSpecialtyId = filled($data['trainer_specialty_id'] ?? null)
+            ? (int) $data['trainer_specialty_id']
+            : null;
+
+        $certification = TrainerCertification::query()->create([
+            'trainer_specialty_id' => $trainerSpecialtyId,
+            'trainer_profile_id' => $trainer->id,
+            'name' => $data['name'],
             'issuer' => $data['issuer'] ?? null,
             'reference_number' => $data['reference_number'] ?? null,
+            'credential_id' => $data['credential_id'] ?? null,
             'issued_at' => $data['issued_at'] ?? null,
             'expires_at' => $data['expires_at'] ?? null,
             'notes' => $data['notes'] ?? null,
         ]);
+
+        $files = $request->file('attachments', []);
+        $files = is_array($files) ? $files : [$files];
+
+        if (! empty($files)) {
+            $cloudinary = app(CloudinaryService::class);
+
+            foreach ($files as $file) {
+                if (! $file) {
+                    continue;
+                }
+
+                $uploaded = $cloudinary->upload($file, 'trainer_certifications');
+
+                $certification->attachments()->create([
+                    'name' => $file->hashName(),
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getClientMimeType(),
+                    'file_size' => (string) $file->getSize(),
+                    'cloudinary_public_id' => (string) Arr::get($uploaded, 'public_id'),
+                    'cloudinary_url' => (string) Arr::get($uploaded, 'url'),
+                    'cloudinary_secure_url' => (string) Arr::get($uploaded, 'secure_url'),
+                    'metadata' => $uploaded,
+                ]);
+            }
+        }
 
         return back()->with('success', 'Certification added successfully.');
     }
@@ -285,23 +316,23 @@ class TutorSkillController extends Controller
         return $trainer;
     }
 
-    protected function trainerSpecialtiesQuery(Request $request, TrainerProfile $trainer, ?string $status = null): Builder
+    protected function trainerSpecialtiesQuery(Request $request, TrainerProfile $trainer, ?string $status = null)
     {
         $orgId = (int) $request->session()->get('current_organization_id');
 
         return $trainer->specialties()
-            ->whereHas('skill', function (Builder $query) use ($orgId) {
+            ->whereHas('skill', function ( $query) use ($orgId) {
                 $query->where('is_active', true)
-                    ->where(function (Builder $scope) use ($orgId) {
+                    ->where(function ( $scope) use ($orgId) {
                         $scope->whereNull('organization_id')
                             ->orWhere('organization_id', $orgId);
                     })
-                    ->where(function (Builder $typeQuery) {
+                    ->where(function ( $typeQuery) {
                         $typeQuery->whereNull('type')
                             ->orWhere('type', '!=', 'degree');
                     });
             })
-            ->when($status !== null, fn (Builder $query) => $query->where('status', $status));
+            ->when($status !== null, fn ( $query) => $query->where('status', $status));
     }
 
     protected function availableSkillsQuery(Request $request, TrainerProfile $trainer): Builder
@@ -397,14 +428,39 @@ class TutorSkillController extends Controller
         return [
             'id' => $certification->id,
             'trainer_specialty_id' => $certification->trainer_specialty_id,
-            'title' => $certification->title,
+            'trainer_profile_id' => $certification->trainer_profile_id ?? null,
+            'name' => $certification->name,
+            'title' => $certification->title ?? $certification->name,
             'issuer' => $certification->issuer,
             'reference_number' => $certification->reference_number,
+            'credential_id' => $certification->credential_id,
             'issued_at' => $certification->issued_at,
             'expires_at' => $certification->expires_at,
             'notes' => $certification->notes,
+            'specialty' => $certification->relationLoaded('specialty') && $certification->specialty ? $this->specialtyPayload($certification->specialty) : null,
+            'attachments' => $certification->relationLoaded('attachments')
+                ? $certification->attachments->map(fn ($attachment) => $this->attachmentPayload($attachment))->values()->all()
+                : [],
             'created_at' => $certification->created_at,
             'updated_at' => $certification->updated_at,
+        ];
+    }
+
+    protected function attachmentPayload($attachment): array
+    {
+        return [
+            'id' => $attachment->id,
+            'trainer_certification_id' => $attachment->trainer_certification_id,
+            'name' => $attachment->name,
+            'original_name' => $attachment->original_name,
+            'mime_type' => $attachment->mime_type,
+            'file_size' => $attachment->file_size,
+            'cloudinary_public_id' => $attachment->cloudinary_public_id,
+            'cloudinary_url' => $attachment->cloudinary_url,
+            'cloudinary_secure_url' => $attachment->cloudinary_secure_url,
+            'metadata' => $attachment->metadata,
+            'created_at' => $attachment->created_at,
+            'updated_at' => $attachment->updated_at,
         ];
     }
 }

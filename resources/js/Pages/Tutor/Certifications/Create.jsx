@@ -1,19 +1,32 @@
 import TutorLayout from "@/Layouts/TutorLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
-import { ArrowLeft, BadgeCheck, HelpCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, BadgeCheck, HelpCircle, Sparkles, Upload } from "lucide-react";
 import SectionCard from "../Skills/Components/SectionCard";
 
-export default function Create({ trainer = null, certificationsBySpecialty = {} }) {
+export default function Create({ trainer = null, specialties = [] }) {
   const form = useForm({
-    specialty_id: "",
+    trainer_specialty_id: "",
     name: "",
     issuer: "",
+    reference_number: "",
+    credential_id: "",
     issued_at: "",
     expires_at: "",
     notes: "",
+    attachments: [],
   });
 
-  const specialties = Object.keys(certificationsBySpecialty || []);
+  const specialtyOptions = Array.isArray(specialties) ? specialties : [];
+
+  const handleFileChange = (event) => {
+    const files = Array.from(event.target.files || []);
+    form.setData("attachments", files);
+  };
+
+  const removeAttachment = (indexToRemove) => {
+    const nextAttachments = form.data.attachments.filter((_, index) => index !== indexToRemove);
+    form.setData("attachments", nextAttachments);
+  };
 
   return (
     <TutorLayout headerTitle="Add Certification">
@@ -29,7 +42,8 @@ export default function Create({ trainer = null, certificationsBySpecialty = {} 
               </div>
               <h1 className="mt-3 text-3xl font-bold">Add a Certification</h1>
               <p className="mt-2 text-sm leading-6 text-white/80">
-                Save certification details and group them by specialty for quick review later.
+                Save certification details, include your reference and credential identifiers, and upload supporting
+                documents or certificates.
               </p>
             </div>
 
@@ -46,10 +60,7 @@ export default function Create({ trainer = null, certificationsBySpecialty = {} 
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <SectionCard
-            title="Tips"
-            description="Helpful guidance for entering certification data."
-          >
+          <SectionCard title="Tips" description="Helpful guidance for entering certification data.">
             <div className="space-y-4 text-sm text-slate-600">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center gap-2 font-medium text-slate-900">
@@ -64,10 +75,11 @@ export default function Create({ trainer = null, certificationsBySpecialty = {} 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center gap-2 font-medium text-slate-900">
                   <BadgeCheck className="h-4 w-4 text-emerald-600" />
-                  Match the specialty
+                  Specialty is optional
                 </div>
                 <p className="mt-2 leading-6">
-                  Pick the specialty that best fits the certification so it appears in the right group.
+                  Link a certification to a specialty only when it is relevant. Leave it blank for general
+                  qualifications like BSc, MSc, or similar credentials.
                 </p>
               </div>
 
@@ -75,36 +87,35 @@ export default function Create({ trainer = null, certificationsBySpecialty = {} 
             </div>
           </SectionCard>
 
-          <SectionCard
-            title="Certification details"
-            description="Fill in the fields below to add a certification."
-          >
+          <SectionCard title="Certification details" description="Fill in the fields below to add a certification.">
             <form
               className="space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
                 form.post(route("trainer.certifications.store"), {
                   preserveScroll: true,
+                  forceFormData: true,
                   onSuccess: () => form.reset(),
                 });
               }}
             >
               <div>
-                <label className="block text-sm font-medium text-slate-700">Specialty</label>
+                <label className="block text-sm font-medium text-slate-700">Specialty (optional)</label>
                 <select
                   className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20"
-                  value={form.data.specialty_id}
-                  onChange={(e) => form.setData("specialty_id", e.target.value)}
-                  required
+                  value={form.data.trainer_specialty_id}
+                  onChange={(e) => form.setData("trainer_specialty_id", e.target.value)}
                 >
-                  <option value="">Select specialty</option>
-                  {specialties.map((specialty) => (
-                    <option key={specialty} value={specialty}>
-                      {specialty}
+                  <option value="">No specialty selected</option>
+                  {specialtyOptions.map((specialty) => (
+                    <option key={specialty.id} value={specialty.id}>
+                      {specialty.name}
                     </option>
                   ))}
                 </select>
-                {form.errors.specialty_id ? <p className="mt-1 text-xs text-rose-600">{form.errors.specialty_id}</p> : null}
+                {form.errors.trainer_specialty_id ? (
+                  <p className="mt-1 text-xs text-rose-600">{form.errors.trainer_specialty_id}</p>
+                ) : null}
               </div>
 
               <div>
@@ -133,11 +144,30 @@ export default function Create({ trainer = null, certificationsBySpecialty = {} 
                   {form.errors.issuer ? <p className="mt-1 text-xs text-rose-600">{form.errors.issuer}</p> : null}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Status</label>
-                  <div className="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
-                    Draft / active in your profile
-                  </div>
+                  <label className="block text-sm font-medium text-slate-700">Reference number</label>
+                  <input
+                    type="text"
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20"
+                    value={form.data.reference_number}
+                    onChange={(e) => form.setData("reference_number", e.target.value)}
+                    placeholder="e.g. REF-12345"
+                  />
+                  {form.errors.reference_number ? (
+                    <p className="mt-1 text-xs text-rose-600">{form.errors.reference_number}</p>
+                  ) : null}
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Credential ID</label>
+                <input
+                  type="text"
+                  className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20"
+                  value={form.data.credential_id}
+                  onChange={(e) => form.setData("credential_id", e.target.value)}
+                  placeholder="e.g. 7d2f9c8a-...."
+                />
+                {form.errors.credential_id ? <p className="mt-1 text-xs text-rose-600">{form.errors.credential_id}</p> : null}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -170,9 +200,58 @@ export default function Create({ trainer = null, certificationsBySpecialty = {} 
                   className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20"
                   value={form.data.notes}
                   onChange={(e) => form.setData("notes", e.target.value)}
-                  placeholder="Add certificate number, reference, or renewal notes"
+                  placeholder="Add certificate number, reference, renewal notes, or supporting information"
                 />
                 {form.errors.notes ? <p className="mt-1 text-xs text-rose-600">{form.errors.notes}</p> : null}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Attachments</label>
+                <div className="mt-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                        <Upload className="h-4 w-4 text-indigo-600" />
+                        Upload supporting files
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">
+                        You can attach certificates, receipts, or verification documents.
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleFileChange}
+                      className="block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-black sm:max-w-xs"
+                    />
+                  </div>
+
+                  {form.data.attachments.length ? (
+                    <div className="mt-4 space-y-2">
+                      {form.data.attachments.map((file, index) => (
+                        <div
+                          key={`${file.name}-${index}`}
+                          className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{file.name}</p>
+                            <p className="text-xs text-slate-500">{Math.ceil(file.size / 1024)} KB</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(index)}
+                            className="ml-3 rounded-md px-2 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs text-slate-500">No files selected.</p>
+                  )}
+                </div>
+                {form.errors.attachments ? <p className="mt-1 text-xs text-rose-600">{form.errors.attachments}</p> : null}
               </div>
 
               <button

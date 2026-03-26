@@ -29,6 +29,7 @@ use App\Http\Controllers\OrganizationSelectionController;
 use App\Http\Controllers\AdminEmployeeSkillController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StaffSkillController;
+use App\Http\Controllers\TutorSkillController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -91,7 +92,7 @@ Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
 
     Route::prefix('trainer')->name('trainer.')->group(function () {
         Route::get('/', [TutorDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/skills', [TutorDashboardController::class, 'skills'])->name('skills.index');
+        Route::get('/skills', [TutorSkillController::class, 'index'])->name('skills.index');
         Route::get('/skills/create', [\App\Http\Controllers\TutorSkillController::class, 'create'])->name('skills.create');
         Route::post('/skills', [\App\Http\Controllers\TutorSkillController::class, 'store'])->name('skills.store');
         Route::get('/skills/{specialty}', [\App\Http\Controllers\TutorSkillController::class, 'show'])->name('skills.show');
