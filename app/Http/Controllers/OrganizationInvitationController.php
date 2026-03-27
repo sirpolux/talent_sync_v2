@@ -6,6 +6,7 @@ use App\Models\OrganizationInvitation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class OrganizationInvitationController extends Controller
@@ -50,30 +51,33 @@ class OrganizationInvitationController extends Controller
      */
     public function acceptStore(Request $request, string $token)
     {
-        $invitation = $this->loadValidInvitation($token);
-
         $validated = $request->validate([
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $user = User::query()
-            ->whereRaw('LOWER(email) = ?', [mb_strtolower($invitation->email)])
-            ->first();
+        return DB::transaction(function () use ($request, $token, $validated) {
+            $invitation = $this->loadValidInvitation($token);
 
-        abort_unless($user, 404, 'Invited user not found.');
+            $user = User::query()
+                ->whereRaw('LOWER(email) = ?', [mb_strtolower($invitation->email)])
+                ->lockForUpdate()
+                ->first();
 
-        $user->password = $validated['password'];
+            abort_unless($user, 404, 'Invited user not found.');
 
-        if (is_null($user->email_verified_at) && $this->requiresEmailVerification($invitation)) {
-            $user->email_verified_at = now();
-        }
+            $user->password = $validated['password'];
 
-        $user->save();
+            if ($this->requiresEmailVerification($invitation)) {
+                $user->email_verified_at = $user->email_verified_at ?? now();
+            }
 
-        Auth::login($user);
-        $request->session()->regenerate();
+            $user->save();
 
-        return $this->finalizeAcceptance($request, $invitation, $user);
+            Auth::login($user);
+            $request->session()->regenerate();
+
+            return $this->finalizeAcceptance($request, $invitation, $user);
+        });
     }
 
     private function loadValidInvitation(string $token): OrganizationInvitation
@@ -95,7 +99,7 @@ class OrganizationInvitationController extends Controller
 
     private function finalizeAcceptance(Request $request, OrganizationInvitation $invitation, User $user)
     {
-        if (is_null($user->email_verified_at) && $this->requiresEmailVerification($invitation)) {
+        if ($this->requiresEmailVerification($invitation) && is_null($user->email_verified_at)) {
             $user->email_verified_at = now();
             $user->save();
         }

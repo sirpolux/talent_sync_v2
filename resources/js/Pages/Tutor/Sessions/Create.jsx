@@ -55,8 +55,13 @@ export default function Create({
 
   const selectedSkill = approvedSkills.find((skill) => normalizeSkillId(skill?.skill_id ?? skill?.id) === normalizeSkillId(form.data.skill_id));
   const selectedSkillActiveCount = Number(
-    selectedSkill?.active_session_count ?? selectedSkill?.active_session_count ?? selectedSkill?.activeSessionsCount ?? selectedSkill?.active_sessions_count ?? 0
+    selectedSkill?.active_session_count ??
+      selectedSkill?.active_sessions_count ??
+      selectedSkill?.activeSessionCount ??
+      selectedSkill?.activeSessionsCount ??
+      0
   );
+
   const selectedSkillCanCreate = selectedSkill ? selectedSkillActiveCount < 3 : false;
   const helperRoute = route("trainer.sessions.calendar", {
     skill: selectedSkill?.name ?? selectedSkill?.title ?? "",

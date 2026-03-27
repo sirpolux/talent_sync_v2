@@ -18,6 +18,7 @@ use Inertia\Response;
 class TutorSessionController extends Controller
 {
     public const ACTIVE_STATUSES = ['scheduled', 'active'];
+    public const SESSION_STATUSES = ['scheduled', 'active', 'completed', 'cancelled', 'paused'];
 
     public function index(Request $request): Response
     {
@@ -47,7 +48,7 @@ class TutorSessionController extends Controller
             ->where('status', 'approved')
             ->with('skill:id,organization_id,name,description,type,category,is_active')
             ->get()
-            ->map(fn (TrainerSpecialty $specialty) => $this->specialtySkillPayload($specialty))
+            ->map(fn (TrainerSpecialty $specialty) => $this->specialtySkillPayload($specialty, $trainer))
             ->values()
             ->all();
 
@@ -68,7 +69,7 @@ class TutorSessionController extends Controller
             ->with('skill:id,organization_id,name,description,type,category,is_active')
             ->orderBy('name')
             ->get()
-            ->map(fn (TrainerSpecialty $specialty) => $this->specialtySkillPayload($specialty))
+            ->map(fn (TrainerSpecialty $specialty) => $this->specialtySkillPayload($specialty, $trainer))
             ->values()
             ->all();
 
@@ -101,7 +102,7 @@ class TutorSessionController extends Controller
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after:start_date'],
             'calendar_link' => ['nullable', 'string', 'max:255'],
-            'status' => ['required', 'string', Rule::in(['scheduled', 'active', 'completed', 'cancelled', 'paused'])],
+            'status' => ['required', 'string', Rule::in($this->sessionStatuses())],
             'capacity' => ['nullable', 'integer', 'min:1'],
             'location' => ['nullable', 'string', 'max:255'],
             'mode' => ['nullable', 'string', 'max:255'],
@@ -126,7 +127,7 @@ class TutorSessionController extends Controller
 
         if ($this->activeSessionCountForSkill($trainer, $skill->id) >= 3 && $this->isActiveStatus($data['status'])) {
             return back()
-                ->withErrors(['skill_id' => 'You cannot have more than 3 active sessions for the same skill.'])
+                ->withErrors(['skill_id' => 'You cannot have more than 3 scheduled or active sessions for the same skill.'])
                 ->withInput();
         }
 
@@ -255,6 +256,11 @@ class TutorSessionController extends Controller
             ->count();
     }
 
+    protected function sessionStatuses(): array
+    {
+        return self::SESSION_STATUSES;
+    }
+
     protected function isActiveStatus(string $status): bool
     {
         return in_array($status, self::ACTIVE_STATUSES, true);
@@ -303,8 +309,10 @@ class TutorSessionController extends Controller
         ];
     }
 
-    protected function specialtySkillPayload(TrainerSpecialty $specialty): array
+    protected function specialtySkillPayload(TrainerSpecialty $specialty, TrainerProfile $trainer): array
     {
+        $activeSessionCount = $this->activeSessionCountForSkill($trainer, $specialty->skill_id);
+
         return [
             'id' => $specialty->id,
             'trainer_profile_id' => $specialty->trainer_profile_id,
@@ -312,6 +320,9 @@ class TutorSessionController extends Controller
             'name' => $specialty->name,
             'description' => $specialty->description,
             'status' => $specialty->status,
+            'active_session_count' => $activeSessionCount,
+            'active_sessions_count' => $activeSessionCount,
+            'activeSessionCount' => $activeSessionCount,
             'skill' => $specialty->relationLoaded('skill') && $specialty->skill ? $this->skillPayload($specialty->skill) : null,
         ];
     }

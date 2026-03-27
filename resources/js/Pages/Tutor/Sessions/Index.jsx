@@ -39,12 +39,10 @@ function formatDateTime(value) {
 }
 
 function StatusPill({ status }) {
-  const value = String(status || "draft").toLowerCase();
+  const value = String(status || "scheduled").toLowerCase();
   const map = {
-    active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    active: "bg-emerald-50 text-emerald-700 border-emerald-200",
     scheduled: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    draft: "bg-slate-50 text-slate-700 border-slate-200",
+    active: "bg-emerald-50 text-emerald-700 border-emerald-200",
     completed: "bg-blue-50 text-blue-700 border-blue-200",
     cancelled: "bg-rose-50 text-rose-700 border-rose-200",
     paused: "bg-amber-50 text-amber-700 border-amber-200",
@@ -60,6 +58,7 @@ function StatusPill({ status }) {
     </span>
   );
 }
+
 
 function SessionCard({ session }) {
   const skillName = session?.skill?.name ?? session?.skill_name ?? "Skill";
