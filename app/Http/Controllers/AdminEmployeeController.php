@@ -170,6 +170,10 @@ class AdminEmployeeController extends Controller
             $user->organizations()->attach($orgId, $pivotData);
         }
 
+        $inviteType = $user->wasRecentlyCreated
+            ? 'new_user_account_setup'
+            : 'existing_user_confirmation';
+
         // Create/refresh invitation token
         $token = Str::random(64);
 
@@ -184,7 +188,11 @@ class AdminEmployeeController extends Controller
                 'token' => $token,
                 'expires_at' => now()->addDays(7),
                 'accepted_at' => null,
-                'meta' => null,
+                'meta' => [
+                    'invite_type' => $inviteType,
+                    'is_employee' => true,
+                    'organization_user_id' => $user->organizations()->whereKey($orgId)->first()?->id,
+                ],
             ]
         );
 

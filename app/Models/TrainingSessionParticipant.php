@@ -9,6 +9,10 @@ class TrainingSessionParticipant extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'reviewed_at' => 'datetime',
+    ];
+
     public function trainingSession(): BelongsTo
     {
         return $this->belongsTo(TrainingSession::class);
@@ -17,5 +21,10 @@ class TrainingSessionParticipant extends Model
     public function organizationUser(): BelongsTo
     {
         return $this->belongsTo(OrganizationUser::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 }

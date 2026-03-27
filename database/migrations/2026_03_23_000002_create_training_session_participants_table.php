@@ -13,6 +13,10 @@ return new class extends Migration
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
             $table->foreignId('training_session_id')->constrained()->cascadeOnDelete();
             $table->foreignId('organization_user_id')->constrained('organization_user')->cascadeOnDelete();
+            $table->string('status', 20)->default('applied');
+            $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('reviewed_at')->nullable();
+            $table->text('review_notes')->nullable();
             $table->timestamps();
 
             $table->unique(['training_session_id', 'organization_user_id'], 'training_session_participants_unique');

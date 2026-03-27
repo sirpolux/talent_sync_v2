@@ -30,6 +30,7 @@ use App\Http\Controllers\OrganizationSelectionController;
 use App\Http\Controllers\AdminEmployeeSkillController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StaffSkillController;
+use App\Http\Controllers\StaffTrainingSessionController;
 use App\Http\Controllers\TutorSkillController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -65,6 +66,8 @@ Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
         Route::get('/training', fn() => Inertia::render('Staff/Training/Index'))->name('training.index');
         Route::get('/training/available', fn() => Inertia::render('Staff/Training/Available'))->name('training.available');
         Route::get('/training/requests', fn() => Inertia::render('Staff/Training/Requests'))->name('training.requests');
+        Route::get('/training/sessions', [StaffTrainingSessionController::class, 'index'])->name('training.sessions.index');
+        Route::post('/training/sessions/{session}/apply', [StaffTrainingSessionController::class, 'apply'])->name('training.sessions.apply');
 
         // Skills & Evidence
         Route::get('/skills', [StaffSkillController::class, 'index'])->name('skills.index');
