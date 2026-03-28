@@ -14,6 +14,7 @@ use App\Http\Controllers\AdminPromotionController;
 use App\Http\Controllers\AdminSkillGapController;
 use App\Http\Controllers\AdminTrainingProgramController;
 use App\Http\Controllers\AdminTrainingRequestController;
+use App\Http\Controllers\AdminLeaveRequestController;
 use App\Http\Controllers\AdminTrainerController;
 use App\Http\Controllers\TutorDashboardController;
 use App\Http\Controllers\TutorSessionController;
@@ -31,6 +32,7 @@ use App\Http\Controllers\AdminEmployeeSkillController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StaffSkillController;
 use App\Http\Controllers\StaffTrainingSessionController;
+use App\Http\Controllers\StaffLeaveController;
 use App\Http\Controllers\TutorSkillController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -87,8 +89,10 @@ Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
         Route::get('/promotions/apply', fn() => Inertia::render('Staff/Promotions/Create'))->name('promotions.create');
 
         // Leave
-        Route::get('/leave', fn() => Inertia::render('Staff/Leave/Index'))->name('leave.index');
-        Route::get('/leave/apply', fn() => Inertia::render('Staff/Leave/Create'))->name('leave.create');
+        Route::get('/leave', [StaffLeaveController::class, 'index'])->name('leave.index');
+        Route::get('/leave/apply', [StaffLeaveController::class, 'create'])->name('leave.create');
+        Route::post('/leave', [StaffLeaveController::class, 'store'])->name('leave.store');
+        Route::get('/leave/{leaveRequest}', fn () => Inertia::render('Staff/Leave/Show'))->name('leave.show');
 
         // Notifications
         Route::get('/notifications', fn() => Inertia::render('Staff/Notifications/Index'))->name('notifications.index');
@@ -235,6 +239,12 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
                 Route::get('/', [AdminTrainingRequestController::class, '__invoke'])->name('index');
                 Route::get('pending', [AdminTrainingRequestController::class, 'pending'])->name('pending');
             });
+        });
+        Route::prefix('leave-requests')->name('leave-requests.')->group(function () {
+            Route::get('/', [AdminLeaveRequestController::class, 'index'])->name('index');
+            Route::get('{leaveRequest}', [AdminLeaveRequestController::class, 'show'])->name('show');
+            Route::patch('{leaveRequest}/approve', [AdminLeaveRequestController::class, 'approve'])->name('approve');
+            Route::patch('{leaveRequest}/reject', [AdminLeaveRequestController::class, 'reject'])->name('reject');
         });
         Route::resource('trainers', AdminTrainerController::class);
 
