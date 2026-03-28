@@ -1,7 +1,7 @@
 import StaffLayout from "@/Layouts/StaffLayout";
 import Breadcrumbs from "@/Components/Breadcrumbs";
 import { Head, Link } from "@inertiajs/react";
-import { CalendarDays, Search, Filter, ArrowRight, Layers3, Clock3, FileText } from "lucide-react";
+import { CalendarDays, Search, Filter, ArrowRight, Layers3, Clock3, FileText, BadgeCheck, Hourglass, ShieldAlert } from "lucide-react";
 
 const STATUS_OPTIONS = [
   { value: "scheduled", label: "Scheduled" },
@@ -56,6 +56,10 @@ function statusStyles(status) {
     completed: "bg-blue-50 text-blue-700 border-blue-200",
     cancelled: "bg-rose-50 text-rose-700 border-rose-200",
     paused: "bg-amber-50 text-amber-700 border-amber-200",
+    applied: "bg-violet-50 text-violet-700 border-violet-200",
+    pending: "bg-amber-50 text-amber-700 border-amber-200",
+    approved: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    rejected: "bg-rose-50 text-rose-700 border-rose-200",
   };
 
   return map[value] || "bg-slate-50 text-slate-700 border-slate-200";
@@ -63,6 +67,20 @@ function statusStyles(status) {
 
 function StatusPill({ status }) {
   const value = String(status || "scheduled").toLowerCase();
+
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyles(value)}`}>
+      {value}
+    </span>
+  );
+}
+
+function RegistrationStatusPill({ status }) {
+  const value = String(status || "").toLowerCase();
+
+  if (!value) {
+    return null;
+  }
 
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyles(value)}`}>
@@ -79,14 +97,23 @@ function SessionCard({ session }) {
   const endDate = session?.end_date ?? session?.ends_at;
   const status = String(session?.status || "scheduled").toLowerCase();
   const isScheduled = status === "scheduled";
+  const hasApplied = Boolean(session?.has_applied);
+  const registrationStatus = String(session?.registration_status || session?.participant_status || "").toLowerCase();
+  const appliedLabel = registrationStatus || (hasApplied ? "applied" : "");
+  const canApply = isScheduled && !hasApplied;
+  const cardClasses = hasApplied
+    ? "border-violet-200 bg-violet-50/60 shadow-sm transition hover:shadow-md"
+    : "border-slate-200 bg-white shadow-sm transition hover:shadow-md";
+  const viewHref = session?.has_applied ? route("trainer.sessions.show", session.id) : route("trainer.sessions.show", session.id);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+    <div className={`rounded-2xl border p-5 ${cardClasses}`}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
             <StatusPill status={status} />
+            {hasApplied ? <RegistrationStatusPill status={appliedLabel} /> : null}
           </div>
 
           <div className="flex flex-wrap gap-2 text-sm text-slate-500">
@@ -106,6 +133,32 @@ function SessionCard({ session }) {
 
           <p className="max-w-3xl text-sm leading-6 text-slate-600">{description}</p>
 
+          {hasApplied ? (
+            <div className="rounded-xl border border-violet-200 bg-white/70 p-3 text-sm text-violet-900">
+              <div className="flex items-center gap-2 font-medium">
+                <BadgeCheck className="h-4 w-4" />
+                You have already applied for this session.
+              </div>
+              <p className="mt-1 text-violet-800">
+                Your registration status is <span className="font-semibold">{appliedLabel || "applied"}</span>. You can no longer apply again, but you can view the session details.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              {isScheduled ? (
+                <div className="flex items-center gap-2 text-emerald-700">
+                  <Hourglass className="h-4 w-4" />
+                  This session is open for registration.
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-amber-700">
+                  <ShieldAlert className="h-4 w-4" />
+                  Registration is closed because the session is no longer scheduled.
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="text-sm text-slate-500">
             {session?.created_at ? (
               <>
@@ -119,21 +172,31 @@ function SessionCard({ session }) {
 
         <div className="flex shrink-0 items-center gap-3 lg:flex-col lg:items-stretch">
           <Link
-            href={route("staff.training.sessions.apply", session.id)}
-            method="post"
-            as="button"
-            className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm transition ${
-              isScheduled
-                ? "bg-slate-900 text-white hover:bg-black"
-                : "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
-            }`}
-            aria-disabled={!isScheduled}
-            disabled={!isScheduled}
-            preserveScroll
+            href={viewHref}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-black"
           >
             <ArrowRight className="h-4 w-4" />
-            {isScheduled ? "Apply / Register" : "Unavailable"}
+            View session
           </Link>
+
+          {!hasApplied ? (
+            <Link
+              href={route("staff.training.sessions.apply", session.id)}
+              method="post"
+              as="button"
+              className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm transition ${
+                canApply
+                  ? "bg-slate-900 text-white hover:bg-black"
+                  : "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
+              }`}
+              aria-disabled={!canApply}
+              disabled={!canApply}
+              preserveScroll
+            >
+              <ArrowRight className="h-4 w-4" />
+              {canApply ? "Apply / Register" : "Unavailable"}
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>
@@ -201,7 +264,7 @@ export default function Index({ sessions = {}, filters = {}, flash = {} }) {
       <Head title="Training Sessions" />
 
       <div className="space-y-6">
-        <Breadcrumbs items={[{ label: "Dashboard", href: "staff.dashboard" }, { label: "Training Sessions" }]} />
+        {/* <Breadcrumbs items={[{ label: "Dashboard", href: "staff.dashboard" }, { label: "Training Sessions" }]} /> */}
 
         <div className="rounded-3xl bg-gradient-to-r from-[#1E3A8A] to-[#059669] p-6 text-white shadow-lg">
           <div className="max-w-3xl">
@@ -225,6 +288,18 @@ export default function Index({ sessions = {}, filters = {}, flash = {} }) {
         {flash?.error ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
             {flash.error}
+          </div>
+        ) : null}
+
+        {flash?.status ? (
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm ${
+              String(flash.status).toLowerCase().includes("already applied")
+                ? "border-violet-200 bg-violet-50 text-violet-800"
+                : "border-amber-200 bg-amber-50 text-amber-800"
+            }`}
+          >
+            {flash.status}
           </div>
         ) : null}
 
@@ -302,7 +377,7 @@ export default function Index({ sessions = {}, filters = {}, flash = {} }) {
             Note
           </span>
           <p className="mt-1">
-            Apply/register is only enabled for sessions in <span className="font-semibold">scheduled</span> status.
+            Apply/register is only enabled for sessions in <span className="font-semibold">scheduled</span> status. If you have already applied, the card will show your current registration status and a view-only action.
           </p>
         </div>
       </div>

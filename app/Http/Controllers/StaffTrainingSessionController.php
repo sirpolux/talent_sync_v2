@@ -6,6 +6,7 @@ use App\Models\OrganizationUser;
 use App\Models\TrainingSession;
 use App\Models\TrainingSessionParticipant;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -29,6 +30,9 @@ class StaffTrainingSessionController extends Controller
                 'trainerProfile:id,organization_user_id,status',
                 'trainerProfile.organizationUser:id,user_id,organization_id',
                 'trainerProfile.organizationUser.user:id,name,email',
+                'participants' => fn (HasMany $query) => $query
+                    ->where('organization_user_id', $orgUser->id)
+                    ->select(['id', 'organization_id', 'training_session_id', 'organization_user_id', 'status', 'created_at', 'updated_at']),
             ])
             ->when($filters['search'] !== '', function (Builder $query) use ($filters) {
                 $search = $filters['search'];
@@ -74,10 +78,11 @@ class StaffTrainingSessionController extends Controller
             ->first();
 
         if ($participant) {
-            return back()->with('status', 'You have already applied to this training session.');
+            return back()->with('error', 'You have already applied to this training session.');
         }
 
         TrainingSessionParticipant::query()->create([
+            'organization_id' =>$orgUser->organization_id,
             'training_session_id' => $session->id,
             'organization_user_id' => $orgUser->id,
             'status' => 'applied',
@@ -152,6 +157,15 @@ class StaffTrainingSessionController extends Controller
             'has_applied' => $session->relationLoaded('participants')
                 ? $session->participants->contains('organization_user_id', $organizationUserId)
                 : false,
+            'participant_status' => $session->relationLoaded('participants')
+                ? $session->participants->firstWhere('organization_user_id', $organizationUserId)?->status
+                : null,
+            'registration_status' => $session->relationLoaded('participants')
+                ? $session->participants->firstWhere('organization_user_id', $organizationUserId)?->status
+                : null,
+            'participant_id' => $session->relationLoaded('participants')
+                ? $session->participants->firstWhere('organization_user_id', $organizationUserId)?->id
+                : null,
             'skill' => $session->relationLoaded('skill') && $session->skill ? [
                 'id' => $session->skill->id,
                 'name' => $session->skill->name,

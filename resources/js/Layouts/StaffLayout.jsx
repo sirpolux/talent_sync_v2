@@ -172,6 +172,11 @@ export default function StaffLayout({
         icon: <BookOpen className="w-5 h-5" />,
         label: "Training",
         children: [
+          {
+            key: "training.sessions",
+            label: "Training Sessions",
+            href: "staff.training.sessions.index",
+          },
           { key: "training.index", label: "My Trainings", href: "staff.training.index" },
           {
             key: "training.available",
