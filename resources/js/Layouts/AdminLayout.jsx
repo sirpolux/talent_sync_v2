@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { Link, usePage } from "@inertiajs/react";
 import {
   Bell,
-  BriefcaseBusiness,
   ChevronDown,
   ChevronRight,
   Home,
@@ -17,6 +16,7 @@ import {
   BookOpen,
   BarChart3,
   User2,
+  CalendarRange,
 } from "lucide-react";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
@@ -249,6 +249,22 @@ export default function AdminLayout({
             key: "staff.assignments",
             label: "Position Assignments",
             href: "admin.staff.assignments.index",
+          },
+          {
+            key: "staff.leave",
+            label: "Leave",
+            children: [
+              {
+                key: "staff.leave.index",
+                label: "Leave Requests",
+                href: "admin.leave-requests.index",
+              },
+              // {
+              //   key: "staff.leave.review",
+              //   label: "Review Leave",
+              //   href: "admin.leave-requests.show",
+              // },
+            ],
           },
         ],
       },
@@ -506,7 +522,6 @@ export default function AdminLayout({
                   <button
                     type="button"
                     onClick={() => {
-                      setOpenSubmenu(null);
                       setSidebarOpen(false);
                     }}
                     className="w-full px-3 py-2 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#059669] text-white font-semibold"
