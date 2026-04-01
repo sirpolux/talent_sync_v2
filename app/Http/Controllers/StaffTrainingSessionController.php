@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\OrganizationUser;
 use App\Models\TrainingSession;
 use App\Models\TrainingSessionParticipant;
+use App\Notifications\TrainingRequestStatusUpdatedNotification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\RedirectResponse;
@@ -82,11 +83,13 @@ class StaffTrainingSessionController extends Controller
         }
 
         TrainingSessionParticipant::query()->create([
-            'organization_id' =>$orgUser->organization_id,
+            'organization_id' => $orgUser->organization_id,
             'training_session_id' => $session->id,
             'organization_user_id' => $orgUser->id,
             'status' => 'applied',
         ]);
+
+        $request->user()?->notify(new TrainingRequestStatusUpdatedNotification($session->trainingRequest ?? new \App\Models\TrainingRequest()));
 
         return back()->with('success', 'Your application has been submitted.');
     }

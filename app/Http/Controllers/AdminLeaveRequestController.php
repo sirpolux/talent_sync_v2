@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LeaveRequest;
 use App\Models\User;
+use App\Notifications\LeaveRequestReviewedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -104,6 +105,8 @@ class AdminLeaveRequestController extends Controller
             'review_notes' => $validated['review_notes'] ?? null,
         ]);
 
+        $leaveRequest->user?->notify(new LeaveRequestReviewedNotification($leaveRequest));
+
         return redirect()
             ->route('admin.leave-requests.show', $leaveRequest)
             ->with('success', 'Leave request approved.');
@@ -126,6 +129,8 @@ class AdminLeaveRequestController extends Controller
             'reviewed_at' => now(),
             'review_notes' => $validated['review_notes'] ?? null,
         ]);
+
+        $leaveRequest->user?->notify(new LeaveRequestReviewedNotification($leaveRequest));
 
         return redirect()
             ->route('admin.leave-requests.show', $leaveRequest)

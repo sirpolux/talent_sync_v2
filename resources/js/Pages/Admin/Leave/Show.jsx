@@ -49,6 +49,28 @@ export default function Show({ leaveRequest }) {
     });
   };
 
+  if (!leaveRequest) {
+    return (
+      <AdminLayout>
+        <Head title="Leave Request" />
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
+          <h1 className="text-lg font-semibold text-slate-900">Leave request not found</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            The selected leave request could not be loaded.
+          </p>
+          <div className="mt-6">
+            <Link
+              href={route("admin.leave-requests.index")}
+              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              Back to list
+            </Link>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout>
       <Head title={`Leave Request${leaveRequest?.user?.name ? `: ${leaveRequest.user.name}` : ""}`} />

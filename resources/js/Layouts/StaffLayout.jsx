@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, usePage } from "@inertiajs/react";
 import {
-  Bell,
   BookOpen,
   ChevronDown,
   ChevronRight,
@@ -14,6 +13,8 @@ import {
   User2,
   X,
 } from "lucide-react";
+
+import NotificationBell from "@/Components/NotificationBell";
 
 function cn(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -236,7 +237,7 @@ export default function StaffLayout({
       },
       {
         key: "notifications",
-        icon: <Bell className="w-5 h-5" />,
+        icon: <User2 className="w-5 h-5" />,
         label: "Notifications",
         href: "staff.notifications.index",
       },
@@ -312,6 +313,7 @@ export default function StaffLayout({
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setSidebarOpen(false)}
                   className="text-gray-500 hover:text-red-600 md:hidden"
                   aria-label="Close sidebar"
@@ -368,14 +370,7 @@ export default function StaffLayout({
             </div>
 
             <div className="flex items-center gap-4">
-              <Link
-                href={route("staff.notifications.index")}
-                className="relative p-2 rounded-md hover:bg-gray-100 transition"
-                aria-label="Notifications"
-              >
-                <Bell className="w-5 h-5 text-gray-600 hover:text-[#1E3A8A]" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full"></span>
-              </Link>
+              <NotificationBell href={route("staff.notifications.index")} label="Notifications" emptyLabel="No staff notifications yet" showDropdown />
 
               <Link
                 as="button"

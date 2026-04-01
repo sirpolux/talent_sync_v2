@@ -92,7 +92,7 @@ Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
         Route::get('/leave', [StaffLeaveController::class, 'index'])->name('leave.index');
         Route::get('/leave/apply', [StaffLeaveController::class, 'create'])->name('leave.create');
         Route::post('/leave', [StaffLeaveController::class, 'store'])->name('leave.store');
-        Route::get('/leave/{leaveRequest}', fn () => Inertia::render('Staff/Leave/Show'))->name('leave.show');
+        Route::get('/leave/{leaveRequest}', [StaffLeaveController::class, 'show'])->name('leave.show');
 
         // Notifications
         Route::get('/notifications', fn() => Inertia::render('Staff/Notifications/Index'))->name('notifications.index');
@@ -166,6 +166,9 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     Route::patch('/admin/company/edit/compliance', [AdminOrganizationController::class, 'updateCompanyCompliance'])
         ->name('admin.company.update.compliance');
 
+    Route::post('/admin/company/edit/logo', [AdminOrganizationController::class, 'updateCompanyLogo'])
+        ->name('admin.company.update.logo');
+
     // Departments
     // Route::get('/admin/departments', [AdminDepartmentController::class, 'index'])->name('admin.departments.index');
     // Route::get('/admin/departments/create', [AdminDepartmentController::class, 'create'])->name('admin.departments.create');
@@ -182,6 +185,10 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     Route::get('/admin/account/password', function () {
         return Inertia::render('Admin/Account/Password');
     })->name('admin.account.password');
+
+    Route::get('/admin/notifications', function () {
+        return Inertia::render('Admin/Notifications/Index');
+    })->name('admin.notifications.index');
 
     // ============================================
     // TALENT DEVELOPMENT ROUTES

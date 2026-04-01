@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Link, usePage } from "@inertiajs/react";
 import {
-  Bell,
   ChevronDown,
   ChevronRight,
   Home,
@@ -16,10 +15,9 @@ import {
   BookOpen,
   BarChart3,
   User2,
-  CalendarRange,
 } from "lucide-react";
 
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import NotificationBell from "@/Components/NotificationBell";
 
 function cn(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -34,7 +32,6 @@ function getInitials(nameOrEmail) {
   return s.slice(0, 2).toUpperCase();
 }
 
-// Recursive menu item renderer for nested menus
 function MenuItemRenderer({
   item,
   openMenus,
@@ -49,7 +46,6 @@ function MenuItemRenderer({
   const isOpen = openMenus.has(item.key);
 
   const handleLeafItemClick = () => {
-    // Ensure this item and all ancestors stay open when navigating to a leaf item
     if (!hasChildren && item.href) {
       ensureOpen([...ancestors, item.key]);
     }
@@ -133,12 +129,11 @@ export default function AdminLayout({
   activeSubmenu = null,
   children,
 }) {
-  const { auth, url } = usePage().props;
+  const { auth } = usePage().props;
   const currentUrl = usePage().url;
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
-  // Helper to find ancestor menu keys for a given route name
   const findMenuAncestors = useCallback((items, targetRoute, ancestors = []) => {
     for (const item of items) {
       if (item.href && route(item.href) === currentUrl) {
@@ -152,10 +147,7 @@ export default function AdminLayout({
     return null;
   }, [currentUrl]);
 
-  // Initialize open menus based on current route
   const getInitialOpenMenus = useCallback(() => {
-    // Try to find which menus should be open based on current URL
-    // We'll call this after menuItems is created
     return new Set([openedMenu]);
   }, [openedMenu]);
 
@@ -187,19 +179,12 @@ export default function AdminLayout({
 
   const menuItems = useMemo(
     () => [
-      // ============================================
-      // OVERVIEW & QUICK ACCESS
-      // ============================================
       {
         key: "overview",
         icon: <Home className="w-5 h-5" />,
         label: "Overview",
         href: "admin.dashboard",
       },
-
-      // ============================================
-      // ORGANIZATION SETUP
-      // ============================================
       {
         key: "setup",
         icon: <MonitorCog className="w-5 h-5" />,
@@ -216,7 +201,6 @@ export default function AdminLayout({
             children: [
               { key: "setup.departments", label: "Departments", href: "admin.departments.index" },
               { key: "setup.positions", label: "Positions", href: "admin.positions.index" },
-              // { key: "setup.roles", label: "Roles", href: "admin.roles.index" },
             ],
           },
           {
@@ -226,10 +210,6 @@ export default function AdminLayout({
           },
         ],
       },
-
-      // ============================================
-      // STAFF MANAGEMENT
-      // ============================================
       {
         key: "staff",
         icon: <Users className="w-5 h-5" />,
@@ -259,19 +239,10 @@ export default function AdminLayout({
                 label: "Leave Requests",
                 href: "admin.leave-requests.index",
               },
-              // {
-              //   key: "staff.leave.review",
-              //   label: "Review Leave",
-              //   href: "admin.leave-requests.show",
-              // },
             ],
           },
         ],
       },
-
-      // ============================================
-      // TALENT DEVELOPMENT
-      // ============================================
       {
         key: "talent",
         icon: <Target className="w-5 h-5" />,
@@ -299,10 +270,6 @@ export default function AdminLayout({
           },
         ],
       },
-
-      // ============================================
-      // CAREER MANAGEMENT
-      // ============================================
       {
         key: "careers",
         icon: <TrendingUp className="w-5 h-5" />,
@@ -346,10 +313,6 @@ export default function AdminLayout({
           },
         ],
       },
-
-      // ============================================
-      // TRAINING & DEVELOPMENT
-      // ============================================
       {
         key: "training",
         icon: <BookOpen className="w-5 h-5" />,
@@ -383,10 +346,6 @@ export default function AdminLayout({
           },
         ],
       },
-
-      // ============================================
-      // REPORTING & ANALYTICS
-      // ============================================
       {
         key: "reporting",
         icon: <BarChart3 className="w-5 h-5" />,
@@ -419,10 +378,6 @@ export default function AdminLayout({
           },
         ],
       },
-
-      // ============================================
-      // ACCOUNT & SETTINGS
-      // ============================================
       {
         key: "account",
         icon: <User2 className="w-5 h-5" />,
@@ -441,7 +396,6 @@ export default function AdminLayout({
     []
   );
 
-  // Update open menus when the current route changes
   useEffect(() => {
     const findAncestors = (items, ancestors = []) => {
       for (const item of items) {
@@ -470,15 +424,12 @@ export default function AdminLayout({
       <div className="flex h-screen bg-gradient-to-br from-blue-50 to-emerald-50 overflow-hidden font-sans relative">
         {sidebarOpen && (
           <>
-            {/* Background Overlay (mobile) */}
             <div
               className="fixed inset-0 bg-black/40 z-30 md:hidden"
               onClick={() => setSidebarOpen(false)}
             />
 
-            {/* Sidebar */}
             <aside className="fixed md:relative z-40 flex flex-col w-72 h-full bg-white/90 backdrop-blur-md shadow-lg border-r border-white/30">
-                {/* Sidebar header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200/50">
                   <div className="flex items-center gap-2">
                     <img
@@ -503,7 +454,6 @@ export default function AdminLayout({
                   </button>
                 </div>
 
-                {/* Menu */}
                 <nav className="flex-1 p-4 space-y-2 overflow-auto">
                   {menuItems.map((item) => (
                     <MenuItemRenderer
@@ -521,9 +471,7 @@ export default function AdminLayout({
                 <div className="px-6 py-4 border-t border-gray-200/50">
                   <button
                     type="button"
-                    onClick={() => {
-                      setSidebarOpen(false);
-                    }}
+                    onClick={() => setSidebarOpen(false)}
                     className="w-full px-3 py-2 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#059669] text-white font-semibold"
                   >
                     Collapse & Focus
@@ -533,7 +481,6 @@ export default function AdminLayout({
           </>
         )}
 
-        {/* Content */}
         <div className="flex-1 relative flex flex-col">
           <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-white/70 backdrop-blur-md border-b border-gray-200/50 shadow-sm sticky top-0 z-10">
             <div className="flex items-center gap-3">
@@ -546,7 +493,6 @@ export default function AdminLayout({
                 >
                   <Menu className="w-5 h-5 text-[#1E3A8A]" />
                 </button>
-                {/* {tabName ? <span className="text-gray-500">{tabName}</span> : null} */}
               </div>
 
               <h2 className="text-lg font-semibold text-[#1E3A8A]">
@@ -555,14 +501,7 @@ export default function AdminLayout({
             </div>
 
             <div className="flex items-center gap-4">
-              <button
-                type="button"
-                className="relative p-2 rounded-md hover:bg-gray-100 transition"
-                aria-label="Notifications"
-              >
-                <Bell className="w-5 h-5 text-gray-600 hover:text-[#1E3A8A]" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full"></span>
-              </button>
+              <NotificationBell href={route("admin.notifications.index")} label="Notifications" emptyLabel="No admin notifications yet" showDropdown />
 
               <Link
                 as="button"
@@ -583,9 +522,7 @@ export default function AdminLayout({
             </div>
           </header>
 
-          {/* <main className="flex-1 overflow-y-scroll h-screen p-4 sm:p-6 relative bg-[url('/img/talent_sync_hero_img.sv')] bg-cover bg-center"> */}
           <main className="flex-1 overflow-y-scroll h-screen p-4 sm:p-6 relative bg-gray-50 bg-cover bg-center">
-           
             <div className="absolute inset-0 bg-white/75 backdrop-blur-sm"></div>
             <div className="relative z-10">{children}</div>
           </main>

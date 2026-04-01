@@ -13,6 +13,38 @@ function Field({ label, value }) {
   );
 }
 
+function CompanyLogo({ logoUrl, name }) {
+  if (!logoUrl) {
+    return (
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        {String(name ?? "Company").slice(0, 2)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <img
+        src={logoUrl}
+        alt={`${name ?? "Company"} logo`}
+        className="h-full w-full object-contain"
+        onError={(e) => {
+          e.currentTarget.style.display = "none";
+          const parent = e.currentTarget.parentElement;
+          if (parent && !parent.querySelector("[data-logo-fallback]")) {
+            const fallback = document.createElement("div");
+            fallback.setAttribute("data-logo-fallback", "true");
+            fallback.className =
+              "flex h-full w-full items-center justify-center bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-400";
+            fallback.textContent = String(name ?? "Company").slice(0, 2);
+            parent.appendChild(fallback);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
 export default function Show({ organization }) {
   return (
     <AdminLayout
@@ -31,12 +63,18 @@ export default function Show({ organization }) {
           ]}
         />
         <div className="bg-white/90 backdrop-blur border border-white/30 shadow-sm rounded-2xl p-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold text-[#1E3A8A]">
-              {organization.company_name}
-            </h1>
-            <div className="mt-1 text-sm text-slate-600">
-              {organization.company_email ?? "No company email set"}
+          <div className="flex items-start gap-4">
+            <CompanyLogo
+              logoUrl={organization?.logo_url}
+              name={organization?.company_name}
+            />
+            <div>
+              <h1 className="text-xl font-semibold text-[#1E3A8A]">
+                {organization.company_name}
+              </h1>
+              <div className="mt-1 text-sm text-slate-600">
+                {organization.company_email ?? "No company email set"}
+              </div>
             </div>
           </div>
 
@@ -47,6 +85,7 @@ export default function Show({ organization }) {
             Edit
           </Link>
         </div>
+
 
         <div className="grid lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-4">

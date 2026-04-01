@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
+use App\Services\CloudinaryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -210,5 +212,26 @@ class AdminOrganizationController extends Controller
         }
 
         return redirect()->route('admin.company.edit')->with('status', 'Compliance details updated.');
+    }
+
+    public function updateCompanyLogo(Request $request): RedirectResponse
+    {
+        $orgId = (int) $request->session()->get('current_organization_id');
+
+        $data = $request->validate([
+            'logo' => ['required', 'image', 'max:5120'],
+        ]);
+
+        $organization = Organization::findOrFail($orgId);
+
+        $cloudinary = app(CloudinaryService::class);
+        $uploaded = $cloudinary->upload($request->file('logo'), 'organization_logos');
+        $logoUrl = (string) Arr::get($uploaded, 'secure_url', Arr::get($uploaded, 'url'));
+
+        $organization->update([
+            'logo_url' => $logoUrl,
+        ]);
+
+        return redirect()->route('admin.company.edit')->with('status', 'Company logo updated.');
     }
 }

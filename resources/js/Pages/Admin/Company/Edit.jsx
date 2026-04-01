@@ -138,6 +138,9 @@ export default function Edit({ organization, status }) {
   const logoForm = useForm({
     logo: null,
   });
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [logoPreviewObjectUrl, setLogoPreviewObjectUrl] = useState(null);
+  const logoInputRef = useRef(null);
 
   const complianceLocked = {
     rn_number: Boolean(organization?.rn_number),
@@ -609,30 +612,97 @@ export default function Edit({ organization, status }) {
 
         <SectionCard
           title="Company logo"
-          description="UI is ready; backend upload will be added later."
+          description="Upload and preview your organization logo."
         >
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              // Backend implementation intentionally deferred.
+              logoForm.post(route("admin.company.update.logo"), {
+                forceFormData: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                  logoForm.reset("logo");
+                  setLogoPreview(null);
+                  setLogoPreviewObjectUrl((current) => {
+                    if (current) {
+                      URL.revokeObjectURL(current);
+                    }
+                    return null;
+                  });
+                  if (logoInputRef.current) {
+                    logoInputRef.current.value = "";
+                  }
+                },
+              });
             }}
             className="space-y-4"
           >
             <div>
               <InputLabel value="Logo" />
               <input
+                ref={logoInputRef}
                 type="file"
                 accept="image/*"
-                className="mt-1 block w-full text-sm"
-                onChange={(e) => logoForm.setData("logo", e.target.files?.[0] ?? null)}
+                className="mt-1 block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  logoForm.setData("logo", file);
+                  logoForm.clearErrors("logo");
+
+                  if (logoPreviewObjectUrl) {
+                    URL.revokeObjectURL(logoPreviewObjectUrl);
+                  }
+
+                  if (file) {
+                    const objectUrl = URL.createObjectURL(file);
+                    setLogoPreview(objectUrl);
+                    setLogoPreviewObjectUrl(objectUrl);
+                  } else {
+                    setLogoPreview(null);
+                    setLogoPreviewObjectUrl(null);
+                  }
+                }}
               />
-              <div className="mt-1 text-xs text-slate-500">
-                Upload is coming soon. This section is UI-only for now.
+              <InputError message={logoForm.errors.logo} className="mt-2" />
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Current logo
+              </div>
+              <div className="mt-3 flex items-center gap-4">
+                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  {logoPreview ? (
+                    <img
+                      src={logoPreview}
+                      alt="Selected logo preview"
+                      className="h-full w-full object-contain"
+                    />
+                  ) : organization?.logo_url ? (
+                    <img
+                      src={organization.logo_url}
+                      alt="Company logo"
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-xs text-slate-400">No logo</span>
+                  )}
+                </div>
+
+                <div className="text-sm text-slate-600">
+                  {logoPreview
+                    ? "Preview of the selected image."
+                    : organization?.logo_url
+                      ? "Uploaded logo currently in use."
+                      : "No company logo uploaded yet."}
+                </div>
               </div>
             </div>
 
             <div className="flex justify-end">
-              <PrimaryButton disabled>Save logo (coming soon)</PrimaryButton>
+              <PrimaryButton disabled={logoForm.processing || !logoForm.data.logo}>
+                {logoForm.processing ? "Uploading..." : "Save logo"}
+              </PrimaryButton>
             </div>
           </form>
         </SectionCard>

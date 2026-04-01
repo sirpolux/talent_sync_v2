@@ -10,15 +10,14 @@ import {
   LayoutDashboard,
   MessageSquare,
   PanelLeft,
-  Presentation,
   Settings2,
   ShieldCheck,
-  FileText,
-  FolderKanban,
-  UserCog,
+  User2,
   X,
   LogOut,
 } from "lucide-react";
+
+import NotificationBell from "@/Components/NotificationBell";
 
 function cn(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -290,14 +289,7 @@ export default function TutorLayout({
           </div>
 
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                className="relative p-2 rounded-md hover:bg-gray-100 transition"
-                aria-label="Notifications"
-              >
-                <Bell className="w-5 h-5 text-gray-600 hover:text-[#1E3A8A]" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full"></span>
-              </button>
+              <NotificationBell href={route("trainer.notifications.index")} label="Notifications" emptyLabel="No trainer notifications yet" showDropdown />
 
               <Link
                 as="button"
@@ -308,15 +300,6 @@ export default function TutorLayout({
               >
                 <LogOut className="w-5 h-5 text-gray-600 hover:text-red-600 transition" />
               </Link>
-
-              {/* <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100 hover:border-red-300"
-                aria-label="Logout"
-              >
-                Logout
-              </button> */}
 
               <div
                 className="w-9 h-9 bg-gradient-to-br from-[#1E3A8A] to-[#059669] text-white flex items-center justify-center rounded-full font-semibold"

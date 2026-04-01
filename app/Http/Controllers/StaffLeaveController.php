@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LeaveRequest;
 use App\Models\OrganizationUser;
+use App\Notifications\LeaveRequestSubmittedNotification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -113,7 +114,7 @@ class StaffLeaveController extends Controller
             'reason' => ['required', 'string', 'max:2000'],
         ]);
 
-        LeaveRequest::query()->create([
+        $leaveRequest = LeaveRequest::query()->create([
             'user_id' => $request->user()?->id,
             'organization_id' => $orgUser->organization_id,
             'start_date' => $validated['start_date'],
@@ -121,6 +122,8 @@ class StaffLeaveController extends Controller
             'reason' => $validated['reason'],
             'status' => LeaveRequest::STATUS_PENDING,
         ]);
+
+        $request->user()?->notify(new LeaveRequestSubmittedNotification($leaveRequest));
 
         return redirect()->route('staff.leave.index')->with('success', 'Leave request submitted successfully.');
     }

@@ -107,27 +107,27 @@ function EmptyState({ title, description }) {
 }
 
 export default function Index({ leaveRequests, filters = {}, statuses = [] }) {
-  const initialQ = filters?.q ?? "";
+  const initialSearch = filters?.search ?? "";
   const initialStatus = filters?.status ?? "all";
 
-  const [q, setQ] = useState(initialQ);
+  const [search, setSearch] = useState(initialSearch);
   const [status, setStatus] = useState(initialStatus);
 
   useEffect(() => {
-    setQ(initialQ);
-  }, [initialQ]);
+    setSearch(initialSearch);
+  }, [initialSearch]);
 
   useEffect(() => {
     setStatus(initialStatus);
   }, [initialStatus]);
 
-  const debouncedQ = useDebouncedValue(q, 350);
+  const debouncedSearch = useDebouncedValue(search, 350);
 
   useEffect(() => {
     router.get(
       route("admin.leave-requests.index"),
       {
-        q: debouncedQ || undefined,
+        search: debouncedSearch || undefined,
         status: status !== "all" ? status : undefined,
       },
       {
@@ -136,7 +136,7 @@ export default function Index({ leaveRequests, filters = {}, statuses = [] }) {
         replace: true,
       }
     );
-  }, [debouncedQ, status]);
+  }, [debouncedSearch, status]);
 
   const data = leaveRequests?.data ?? [];
   const links = leaveRequests?.links ?? [];
@@ -189,13 +189,13 @@ export default function Index({ leaveRequests, filters = {}, statuses = [] }) {
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
                 <div>
-                  <label className="sr-only" htmlFor="q">
+                  <label className="sr-only" htmlFor="search">
                     Search leave requests
                   </label>
                   <input
-                    id="q"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
+                    id="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search employee name, email, or reason…"
                     className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20"
                   />
@@ -235,7 +235,7 @@ export default function Index({ leaveRequests, filters = {}, statuses = [] }) {
                 <button
                   type="button"
                   onClick={() => {
-                    setQ("");
+                    setSearch("");
                     setStatus("all");
                     router.get(route("admin.leave-requests.index"), {}, { preserveScroll: true, replace: true });
                   }}
