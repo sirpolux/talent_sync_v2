@@ -12,8 +12,8 @@ class Organization extends Model
 
     public function getNameAttribute(): ?string
     {
-        return $this->attributes['organization_name']
-            ?? $this->attributes['company_name']
+        return $this->attributes['company_name']
+            ?? $this->attributes['organization_name']
             ?? $this->attributes['name'] // keep compatibility if present
             ?? null;
     }

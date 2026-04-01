@@ -85,7 +85,7 @@ class LeaveRequestReviewedNotification extends Notification implements ShouldQue
                 'review_notes' => $this->leaveRequest->review_notes,
                 'organization' => [
                     'id' => $this->leaveRequest->organization_id,
-                    'name' => $this->leaveRequest->organization?->name,
+                    'name' => $this->leaveRequest->organization?->company_name,
                 ],
                 'user' => [
                     'id' => $this->leaveRequest->user_id,

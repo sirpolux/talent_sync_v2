@@ -44,7 +44,7 @@ class LeaveRequestSubmittedNotification extends Notification implements ShouldQu
 
     protected function payload(): array
     {
-        $this->leaveRequest->loadMissing(['user:id,name,email', 'organization:id,name']);
+        $this->leaveRequest->loadMissing(['user:id,name,email', 'organization:id,company_name']);
 
         return [
             'type' => 'leave_request_submitted',
@@ -68,7 +68,7 @@ class LeaveRequestSubmittedNotification extends Notification implements ShouldQu
                 'end_date' => $this->leaveRequest->end_date?->toDateString(),
                 'organization' => [
                     'id' => $this->leaveRequest->organization_id,
-                    'name' => $this->leaveRequest->organization?->name,
+                    'name' => $this->leaveRequest->organization?->company_name,
                 ],
                 'user' => [
                     'id' => $this->leaveRequest->user_id,
