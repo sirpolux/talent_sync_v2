@@ -186,6 +186,24 @@ export default function AdminLayout({
         href: "admin.dashboard",
       },
       {
+        key: "notifications",
+        icon: <Target className="w-5 h-5" />,
+        label: "Notifications",
+        href: "admin.notifications.index",
+      },
+      {
+        key: "leave-management",
+        icon: <Users className="w-5 h-5" />,
+        label: "Leave Management",
+        children: [
+          {
+            key: "leave-management.requests",
+            label: "Leave Requests",
+            href: "admin.leave-requests.index",
+          },
+        ],
+      },
+      {
         key: "setup",
         icon: <MonitorCog className="w-5 h-5" />,
         label: "Setup",
@@ -229,17 +247,6 @@ export default function AdminLayout({
             key: "staff.assignments",
             label: "Position Assignments",
             href: "admin.staff.assignments.index",
-          },
-          {
-            key: "staff.leave",
-            label: "Leave",
-            children: [
-              {
-                key: "staff.leave.index",
-                label: "Leave Requests",
-                href: "admin.leave-requests.index",
-              },
-            ],
           },
         ],
       },
@@ -482,7 +489,7 @@ export default function AdminLayout({
         )}
 
         <div className="flex-1 relative flex flex-col">
-          <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-white/70 backdrop-blur-md border-b border-gray-200/50 shadow-sm sticky top-0 z-10">
+          <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-white/70 backdrop-blur-md border-b border-gray-200/50 shadow-sm sticky top-0 z-50">
             <div className="flex items-center gap-3">
               <div className="flex flex-row items-center gap-4">
                 <button

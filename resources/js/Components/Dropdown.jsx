@@ -25,12 +25,7 @@ const Trigger = ({ children }) => {
         <>
             <div onClick={toggleOpen}>{children}</div>
 
-            {open && (
-                <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setOpen(false)}
-                ></div>
-            )}
+            {open && <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)}></div>}
         </>
     );
 };
@@ -55,6 +50,8 @@ const Content = ({
 
     if (width === '48') {
         widthClasses = 'w-48';
+    } else if (width === '80') {
+        widthClasses = 'w-80';
     }
 
     return (
@@ -69,7 +66,7 @@ const Content = ({
                 leaveTo="opacity-0 scale-95"
             >
                 <div
-                    className={`absolute z-50 mt-2 rounded-md shadow-lg ${alignmentClasses} ${widthClasses}`}
+                    className={`absolute z-[70] mt-2 rounded-md shadow-lg ${alignmentClasses} ${widthClasses}`}
                     onClick={() => setOpen(false)}
                 >
                     <div
