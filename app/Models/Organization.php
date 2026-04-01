@@ -10,6 +10,14 @@ class Organization extends Model
 {
     protected $guarded = [];
 
+    public function getNameAttribute(): ?string
+    {
+        return $this->attributes['organization_name']
+            ?? $this->attributes['company_name']
+            ?? $this->attributes['name'] // keep compatibility if present
+            ?? null;
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)

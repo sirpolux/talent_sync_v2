@@ -60,13 +60,11 @@ class AdminEmployeeController extends Controller
 
         $departments = Department::query()
             ->where('organization_id', $orgId)
-            ->select(['id', 'name'])
             ->orderBy('name')
             ->get();
 
         $positions = Position::query()
             ->where('organization_id', $orgId)
-            ->select(['id', 'name', 'department_id'])
             ->orderBy('name')
             ->get();
 
