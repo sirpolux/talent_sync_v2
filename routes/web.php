@@ -65,11 +65,13 @@ Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
             ->name('account.password');
 
         // Training
-        Route::get('/training', fn() => Inertia::render('Staff/Training/Index'))->name('training.index');
-        Route::get('/training/available', fn() => Inertia::render('Staff/Training/Available'))->name('training.available');
-        Route::get('/training/requests', fn() => Inertia::render('Staff/Training/Requests'))->name('training.requests');
+        Route::get('/training', [StaffTrainingSessionController::class, 'trainings'])->name('training.index');
+        Route::get('/training/available', [StaffTrainingSessionController::class, 'available'])->name('training.available');
+        Route::get('/training/requests', [StaffTrainingSessionController::class, 'requests'])->name('training.requests');
         Route::get('/training/sessions', [StaffTrainingSessionController::class, 'index'])->name('training.sessions.index');
+        Route::get('/training/sessions/{session}', [StaffTrainingSessionController::class, 'show'])->name('training.sessions.show');
         Route::post('/training/sessions/{session}/apply', [StaffTrainingSessionController::class, 'apply'])->name('training.sessions.apply');
+        Route::post('/training/sessions/{session}/withdraw', [StaffTrainingSessionController::class, 'withdraw'])->name('training.sessions.withdraw');
 
         // Skills & Evidence
         Route::get('/skills', [StaffSkillController::class, 'index'])->name('skills.index');
@@ -128,6 +130,11 @@ Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
             ]);
         })->name('sessions.calendar');
         Route::post('/sessions', [TutorSessionController::class, 'store'])->name('sessions.store');
+        Route::get('/sessions/{session}/edit', [TutorSessionController::class, 'edit'])->name('sessions.edit');
+        Route::patch('/sessions/{session}', [TutorSessionController::class, 'update'])->name('sessions.update');
+        Route::patch('/sessions/{session}/cancel', [TutorSessionController::class, 'cancel'])->name('sessions.cancel');
+        Route::patch('/sessions/{session}/participants/{participant}/review', [TutorSessionController::class, 'reviewParticipant'])->name('sessions.participants.review');
+        Route::patch('/sessions/{session}/participants/{participant}/status', [TutorSessionController::class, 'markParticipantStatus'])->name('sessions.participants.status');
         Route::get('/sessions/{session}', [TutorSessionController::class, 'show'])->name('sessions.show');
         Route::get('/progress', [TutorDashboardController::class, 'progress'])->name('progress.index');
         Route::get('/assessments', [TutorDashboardController::class, 'assessments'])->name('assessments.index');
