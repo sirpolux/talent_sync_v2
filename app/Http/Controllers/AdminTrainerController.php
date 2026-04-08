@@ -392,6 +392,7 @@ class AdminTrainerController extends Controller
             'skill_id' => $skill->id,
             'name' => $skill->name,
             'description' => $skill->description,
+            'status' => 'approved',
         ]);
 
         return back()->with('status', 'Trainer skill added.');

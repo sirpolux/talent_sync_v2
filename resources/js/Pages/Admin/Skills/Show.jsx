@@ -59,15 +59,19 @@ export default function Show({ skill }) {
               <Link href={route("admin.skills.index")}>Back</Link>
             </Button>
 
-            {
-              s.organization_id &&
+            {s.organization_id ? (
               <Button variant="outline" asChild>
                 <Link href={route("admin.skills.edit", s.id)}>Edit</Link>
               </Button>
-            }
+            ) : null}
 
-            {
-              s.organization_id &&
+            <Button variant="outline" asChild>
+              <Link href={route("admin.skills.recommend.create", s.id)}>
+                Recommend skill
+              </Link>
+            </Button>
+
+            {s.organization_id ? (
               <Button
                 type="button"
                 variant="outline"
@@ -77,7 +81,7 @@ export default function Show({ skill }) {
               >
                 Set inactive
               </Button>
-            }
+            ) : null}
           </div>
         </div>
 

@@ -24,6 +24,7 @@ use App\Http\Controllers\AdminStaffAssignmentController;
 use App\Http\Controllers\AdminRoleController;
 use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\AdminAdminController;
+use App\Http\Controllers\AdminSkillRecommendationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrganizationInvitationController;
 use App\Http\Controllers\GeoController;
@@ -203,6 +204,8 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     Route::name('admin.')->prefix('admin')->group(function () {
 
         Route::resource('skills', AdminSkillController::class);
+        Route::get('skills/{skill}/recommend', [AdminSkillRecommendationController::class, 'create'])
+            ->name('skills.recommend.create');
         Route::resource('competencies', AdminCompetencyController::class)->only(['index']);
 
         Route::get('competencies/departments/{department}', [AdminCompetencyController::class, 'department'])
