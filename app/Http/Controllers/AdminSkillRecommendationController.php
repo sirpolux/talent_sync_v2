@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\EmployeeSkillAllocation;
 use App\Models\OrganizationUser;
 use App\Models\Skill;
 use App\Models\SkillRecommendation;
@@ -24,53 +25,8 @@ class AdminSkillRecommendationController extends Controller
         abort_unless($skill->organization_id === null || (int) $skill->organization_id === $orgId, 404);
 
         $search = trim((string) $request->get('search', ''));
-        $perPage = (int) $request->get('per_page', 10);
-        $perPage = in_array($perPage, [10, 20, 50, 100], true) ? $perPage : 10;
-
-        $organizationUserIds = \App\Models\User::query()
-            ->join('organization_user', 'organization_user.user_id', '=', 'users.id')
-            ->where('organization_user.organization_id', $orgId)
-            ->where('organization_user.is_employee', true)
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('users.name', 'like', "%{$search}%")
-                        ->orWhere('users.email', 'like', "%{$search}%")
-                        ->orWhereHas('organizationUser.department', function ($departmentQuery) use ($search) {
-                            $departmentQuery->where('name', 'like', "%{$search}%");
-                        })
-                        ->orWhereHas('organizationUser.position', function ($positionQuery) use ($search) {
-                            $positionQuery->where('name', 'like', "%{$search}%");
-                        });
-                });
-            })
-            ->pluck('organization_user.id');
-        $employeeIds = $organizationUserIds->map(fn ($id) => (int) $id)->values();
-        $hasSkillIds = $skill->employeeSkills()
-            ->whereIn('organization_user_id', $employeeIds)
-            ->pluck('organization_user_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-        $inTrainingIds = TrainingSessionParticipant::query()
-            ->whereIn('organization_user_id', $employeeIds)
-            ->whereHas('trainingSession', function ($query) use ($orgId, $skill) {
-                $query->where('organization_id', $orgId)
-                    ->where('skill_id', $skill->id)
-                    ->where('status', 'in_progress');
-            })
-            ->pluck('organization_user_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-        $pendingRecommendationIds = SkillRecommendationRecipient::query()
-            ->whereIn('organization_user_id', $employeeIds)
-            ->whereHas('skillRecommendation', function ($query) use ($orgId, $skill) {
-                $query->where('organization_id', $orgId)
-                    ->where('skill_id', $skill->id)
-                    ->where('status', 'active');
-            })
-            ->where('registration_status', 'pending')
-            ->pluck('organization_user_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
+        $perPage = (int) $request->get('per_page', 20);
+        $perPage = in_array($perPage, [10, 20], true) ? $perPage : 20;
 
         $employees = \App\Models\User::query()
             ->select([
@@ -97,23 +53,52 @@ class AdminSkillRecommendationController extends Controller
             })
             ->orderBy('users.name')
             ->paginate($perPage)
-            ->withQueryString()
-            ->through(function ($employee) use ($hasSkillIds, $inTrainingIds, $pendingRecommendationIds) {
-                $orgUserId = (int) $employee->org_user_id;
+            ->withQueryString();
 
-                return [
-                    'id' => $orgUserId,
-                    'user_id' => $employee->user_id,
-                    'name' => $employee->name,
-                    'email' => $employee->email,
-                    'membership_status' => $employee->membership_status,
-                    'department_name' => $employee->department_name,
-                    'position_name' => $employee->position_name,
-                    'has_skill' => in_array($orgUserId, $hasSkillIds, true),
-                    'is_in_training' => in_array($orgUserId, $inTrainingIds, true),
-                    'recommendation_status' => in_array($orgUserId, $pendingRecommendationIds, true) ? 'pending' : null,
-                ];
-            });
+        $employeeIds = collect($employees->items())
+            ->pluck('org_user_id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        $hasSkillIds = \App\Models\EmployeeSkillAllocation::query()
+            ->where('skill_id', $skill->id)
+            ->whereIn('organization_user_id', $employeeIds)
+            ->pluck('organization_user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $inTrainingIds = TrainingSessionParticipant::query()
+            ->whereIn('organization_user_id', $employeeIds)
+            ->whereHas('trainingSession', function ($query) use ($orgId, $skill) {
+                $query->where('organization_id', $orgId)
+                    ->where('skill_id', $skill->id)
+                    ->where('status', 'in_progress');
+            })
+            ->pluck('organization_user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $pendingRecommendationIds = SkillRecommendationRecipient::query()
+            ->whereIn('organization_user_id', $employeeIds)
+            ->whereHas('skillRecommendation', function ($query) use ($orgId, $skill) {
+                $query->where('organization_id', $orgId)
+                    ->where('skill_id', $skill->id)
+                    ->where('status', 'active');
+            })
+            ->where('registration_status', 'pending')
+            ->pluck('organization_user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $employees->getCollection()->transform(function ($employee) use ($hasSkillIds, $inTrainingIds, $pendingRecommendationIds) {
+            $orgUserId = (int) $employee->org_user_id;
+
+            $employee->has_skill = in_array($orgUserId, $hasSkillIds, true);
+            $employee->is_in_training = in_array($orgUserId, $inTrainingIds, true);
+            $employee->recommendation_status = in_array($orgUserId, $pendingRecommendationIds, true) ? 'pending' : null;
+
+            return $employee;
+        });
 
         return Inertia::render('Admin/Skills/Recommend', [
             'skill' => [

@@ -254,7 +254,7 @@ class AdminEmployeeSkillController extends Controller
                 'grading_system_id' => $data['grading_system_id'] ?? null,
                 'grade_id' => $data['grade_id'] ?? null,
                 // keep pending until evidence exists
-                'status' => 'pending',
+                'status' => 'pending_evidence',
             ]
         );
 
