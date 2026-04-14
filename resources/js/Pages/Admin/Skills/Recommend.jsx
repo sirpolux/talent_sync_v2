@@ -1,22 +1,67 @@
 import React, { useMemo, useState } from "react";
 import AdminLayout from "@/Layouts/AdminLayout";
 import Breadcrumbs from "@/Components/Breadcrumbs";
-import { Head, Link, router } from "@inertiajs/react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/Components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/Components/ui/table";
 import { Badge } from "@/Components/ui/badge";
 
+const statusStyles = {
+  pending: "border-amber-200 bg-amber-50 text-amber-700",
+  active: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  verified: "border-blue-200 bg-blue-50 text-blue-700",
+  training: "border-violet-200 bg-violet-50 text-violet-700",
+  completed: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  default: "border-slate-200 bg-slate-50 text-slate-600",
+};
+
+function StatusChip({ label, tone = "default" }) {
+  const toneClass = statusStyles[tone] ?? statusStyles.default;
+
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${toneClass}`}>
+      {label}
+    </span>
+  );
+}
+
+function StatusStack({ employee }) {
+  const cues = [];
+
+  if (employee?.has_skill) {
+    cues.push({ label: "Has skill", tone: "verified" });
+  }
+
+  if (employee?.is_in_training) {
+    cues.push({ label: "In training", tone: "training" });
+  }
+
+  if (employee?.recommendation_status === "pending") {
+    cues.push({ label: "Recommendation pending", tone: "pending" });
+  }
+
+  if (!cues.length) {
+    cues.push({ label: "Available", tone: "default" });
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {cues.map((cue) => (
+        <StatusChip key={cue.label} label={cue.label} tone={cue.tone} />
+      ))}
+    </div>
+  );
+}
+
 export default function Recommend({ skill, employees, filters }) {
+  const { flash = {} } = usePage().props;
   const [selectedIds, setSelectedIds] = useState([]);
   const [search, setSearch] = useState(filters?.search ?? "");
+  const [reason, setReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState("");
 
   const rows = employees?.data ?? [];
 
@@ -54,6 +99,42 @@ export default function Recommend({ skill, employees, filters }) {
   const allVisibleSelected =
     currentPageIds.length > 0 && currentPageIds.every((id) => selectedIds.includes(id));
 
+  const handleSubmit = () => {
+    if (selectedCount === 0 || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmitError("");
+    setSubmitSuccess("");
+
+    router.post(
+      route("admin.skills.recommend.store", skill.id),
+      {
+        organization_user_ids: selectedIds,
+        reason,
+      },
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          setSelectedIds([]);
+          setReason("");
+          setSubmitError("");
+          setSubmitSuccess("Skill recommendation sent successfully.");
+        },
+        onError: (errors) => {
+          setSubmitSuccess("");
+          setSubmitError(
+            errors?.organization_user_ids ||
+              errors?.reason ||
+              "Unable to send the recommendation. Please review the form and try again."
+          );
+        },
+        onFinish: () => {
+          setIsSubmitting(false);
+        },
+      }
+    );
+  };
+
   return (
     <AdminLayout
       headerTitle="Recommend Skill"
@@ -72,7 +153,8 @@ export default function Recommend({ skill, employees, filters }) {
                 { label: "Skills", href: "admin.skills.index" },
                 {
                   label: skill?.name ?? "Skill",
-                  href: route("admin.skills.show", skill.id),
+                  href: "admin.skills.show",
+                  params: skill.id,
                 },
                 { label: "Recommend" },
               ]}
@@ -95,23 +177,44 @@ export default function Recommend({ skill, employees, filters }) {
 
             <Button
               type="button"
-              disabled={selectedCount === 0}
-              onClick={() => {
-                router.post(
-                  route("admin.skills.recommend.store", skill.id),
-                  { organization_user_ids: selectedIds },
-                  { preserveScroll: true }
-                );
-              }}
+              disabled={selectedCount === 0 || isSubmitting}
+              onClick={handleSubmit}
             >
-              Recommend {selectedCount > 0 ? `(${selectedCount})` : ""}
+              {isSubmitting
+                ? "Sending..."
+                : `Recommend ${selectedCount > 0 ? `(${selectedCount})` : ""}`}
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white border rounded-xl shadow-sm p-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        {(flash?.status || submitError || submitSuccess) && (
+          <div
+            className={`rounded-xl border p-4 text-sm ${
+              submitError
+                ? "border-red-200 bg-red-50 text-red-700"
+                : "border-emerald-200 bg-emerald-50 text-emerald-700"
+            }`}
+          >
+            {submitError || submitSuccess || flash.status}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white p-4 shadow-sm">
+          <div>
+            <p className="text-sm font-medium text-slate-900">Recommendations for this skill</p>
+            <p className="text-sm text-muted-foreground">
+              Review current recommendations, training progress, and staff who already have this skill.
+            </p>
+          </div>
+
+          <Button variant="outline" asChild>
+            <Link href={route("admin.skills.show", skill.id)}>View skill recommendations</Link>
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="space-y-4 lg:col-span-2">
+            <div className="flex flex-col gap-3 rounded-xl border bg-white p-4 shadow-sm sm:flex-row sm:items-end sm:justify-between">
               <div className="flex-1">
                 <label className="text-sm font-medium text-slate-700">Search staff</label>
                 <div className="mt-1 flex gap-2">
@@ -138,7 +241,7 @@ export default function Recommend({ skill, employees, filters }) {
               </div>
             </div>
 
-            <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+            <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -149,6 +252,7 @@ export default function Recommend({ skill, employees, filters }) {
                     <TableHead>Position</TableHead>
                     <TableHead>Department</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-56">Skill Signals</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -172,11 +276,14 @@ export default function Recommend({ skill, employees, filters }) {
                         <TableCell>
                           <Badge variant="outline">{employee.membership_status ?? "—"}</Badge>
                         </TableCell>
+                        <TableCell>
+                          <StatusStack employee={employee} />
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
                         No staff found for the current search.
                       </TableCell>
                     </TableRow>
@@ -186,17 +293,13 @@ export default function Recommend({ skill, employees, filters }) {
             </div>
 
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <div>
-                Showing {rows.length} staff on this page.
-              </div>
-              <div>
-                {employees?.links ? null : null}
-              </div>
+              <div>Showing {rows.length} staff on this page.</div>
+              <div>{employees?.links ? null : null}</div>
             </div>
           </div>
 
           <aside className="space-y-4">
-            <div className="bg-white border rounded-xl shadow-sm p-5 space-y-3">
+            <div className="space-y-3 rounded-xl border bg-white p-5 shadow-sm">
               <div className="text-sm font-semibold text-slate-900">Recommendation summary</div>
 
               <div className="space-y-2 text-sm">
@@ -209,9 +312,23 @@ export default function Recommend({ skill, employees, filters }) {
                   <span className="font-medium text-slate-900">{selectedCount}</span>
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700" htmlFor="recommendation-reason">
+                  Reason (optional)
+                </label>
+                <textarea
+                  id="recommendation-reason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows={4}
+                  placeholder="Add a short note to explain this recommendation"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                />
+              </div>
             </div>
 
-            <div className="bg-slate-50 border rounded-xl p-5 text-sm text-slate-700">
+            <div className="rounded-xl border bg-slate-50 p-5 text-sm text-slate-700">
               <p className="font-medium text-slate-900">Suggestion</p>
               <p className="mt-2">
                 Consider adding a confirmation step before submission so the admin can review

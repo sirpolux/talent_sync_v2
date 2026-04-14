@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OrganizationUser;
 use App\Models\Skill;
-use App\Models\User;
+use App\Models\SkillRecommendation;
+use App\Models\SkillRecommendationRecipient;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,7 +26,7 @@ class AdminSkillRecommendationController extends Controller
         $perPage = (int) $request->get('per_page', 10);
         $perPage = in_array($perPage, [10, 20, 50, 100], true) ? $perPage : 10;
 
-        $employees = User::query()
+        $employees = \App\Models\User::query()
             ->select([
                 'organization_user.id as org_user_id',
                 'users.id as user_id',
@@ -70,5 +75,92 @@ class AdminSkillRecommendationController extends Controller
                 'per_page' => $perPage,
             ],
         ]);
+    }
+
+    public function store(Request $request, Skill $skill): RedirectResponse
+    {
+        $orgId = (int) $request->session()->get('current_organization_id');
+
+        abort_unless($orgId, 403, 'No active organization selected.');
+        abort_unless($skill->organization_id === null || (int) $skill->organization_id === $orgId, 404);
+
+        $data = $request->validate([
+            'organization_user_ids' => ['required', 'array', 'min:1'],
+            'organization_user_ids.*' => [
+                'integer',
+                Rule::exists('organization_user', 'id')->where(function ($query) use ($orgId) {
+                    $query->where('organization_id', $orgId)
+                        ->where('is_employee', true);
+                }),
+            ],
+            'reason' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $organizationUserIds = collect($data['organization_user_ids'])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($organizationUserIds->isEmpty()) {
+            return back()->withErrors([
+                'organization_user_ids' => 'Please select at least one employee to recommend this skill to.',
+            ]);
+        }
+
+        try {
+            DB::transaction(function () use ($request, $skill, $orgId, $organizationUserIds, $data) {
+                $recommendation = SkillRecommendation::create([
+                    'organization_id' => $orgId,
+                    'skill_id' => $skill->id,
+                    'recommended_by_user_id' => $request->user()?->id,
+                    'recommended_by_role' => $request->user()?->role?->name
+                        ?? $request->user()?->role
+                        ?? null,
+                    'source_type' => 'admin',
+                    'source_id' => $request->user()?->id,
+                    'target_type' => 'organization_user',
+                    'reason' => $data['reason'] ?? null,
+                    'status' => 'active',
+                    'recommended_at' => now(),
+                ]);
+
+                $existingRecipientIds = SkillRecommendationRecipient::query()
+                    ->whereHas('skillRecommendation', function ($query) use ($orgId, $skill) {
+                        $query->where('organization_id', $orgId)
+                            ->where('skill_id', $skill->id);
+                    })
+                    ->whereIn('organization_user_id', $organizationUserIds)
+                    ->pluck('organization_user_id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all();
+
+                $now = now();
+                $newRecipientIds = $organizationUserIds->diff($existingRecipientIds)->values();
+
+                if ($newRecipientIds->isNotEmpty()) {
+                    $rows = $newRecipientIds->map(function ($organizationUserId) use ($recommendation, $now) {
+                        return [
+                            'skill_recommendation_id' => $recommendation->id,
+                            'organization_user_id' => $organizationUserId,
+                            'registration_status' => 'pending',
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    })->all();
+
+                    SkillRecommendationRecipient::insert($rows);
+                }
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors([
+                'organization_user_ids' => 'Unable to save the recommendation right now. Please try again.',
+            ]);
+        }
+
+        return redirect()
+            ->route('admin.skills.recommend.create', $skill)
+            ->with('status', 'Skill recommendation sent successfully.');
     }
 }
