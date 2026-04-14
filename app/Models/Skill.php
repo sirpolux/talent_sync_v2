@@ -58,4 +58,5 @@ class Skill extends Model
             ->withPivot(['required_proficiency', 'is_required', 'minimum_score'])
             ->withTimestamps();
     }
+  
 }
