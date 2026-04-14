@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['skill_recommendation_id', 'organization_user_id'], 'skill_recommendation_recipients_unique');
-            $table->index(['organization_user_id', 'registration_status']);
+            $table->index(['organization_user_id', 'registration_status'], 'srr_org_user_reg_status_idx');
         });
     }
 
