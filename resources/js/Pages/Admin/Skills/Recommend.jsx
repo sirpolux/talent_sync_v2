@@ -64,6 +64,14 @@ export default function Recommend({ skill, employees, filters }) {
   const [submitSuccess, setSubmitSuccess] = useState("");
 
   const rows = employees?.data ?? [];
+  const paginationLinks = employees?.links ?? [];
+  const currentPage = employees?.current_page ?? 1;
+  const lastPage = employees?.last_page ?? 1;
+  const from = employees?.from ?? 0;
+  const to = employees?.to ?? 0;
+  const total = employees?.total ?? 0;
+
+  const getEmployeeId = (employee) => employee.org_user_id ?? employee.id;
 
   const toggleEmployee = (id) => {
     setSelectedIds((current) =>
@@ -74,15 +82,15 @@ export default function Recommend({ skill, employees, filters }) {
   };
 
   const toggleAllVisible = () => {
-    const visibleIds = rows.map((employee) => employee.id);
-    const allVisibleSelected = visibleIds.every((id) => selectedIds.includes(id));
+    const visibleIds = rows.map((employee) => getEmployeeId(employee));
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
 
     if (allVisibleSelected) {
       setSelectedIds((current) => current.filter((id) => !visibleIds.includes(id)));
       return;
     }
 
-    setSelectedIds((current) => Array.from(new Set([...current, ...visibleIds])));
+    setSelectedIds(visibleIds);
   };
 
   const selectedCount = selectedIds.length;
@@ -95,7 +103,15 @@ export default function Recommend({ skill, employees, filters }) {
     );
   };
 
-  const currentPageIds = useMemo(() => rows.map((employee) => employee.id), [rows]);
+  const goToPage = (page) => {
+    router.get(
+      route("admin.skills.recommend.create", skill.id),
+      { search, per_page: filters?.per_page ?? 10, page },
+      { preserveState: true, preserveScroll: true, replace: true }
+    );
+  };
+
+  const currentPageIds = useMemo(() => rows.map((employee) => getEmployeeId(employee)), [rows]);
   const allVisibleSelected =
     currentPageIds.length > 0 && currentPageIds.every((id) => selectedIds.includes(id));
 
@@ -208,7 +224,7 @@ export default function Recommend({ skill, employees, filters }) {
           </div>
 
           <Button variant="outline" asChild>
-            <Link href={route("admin.skills.show", skill.id)}>View skill recommendations</Link>
+            <Link href={route("admin.skills.recommend.index", skill.id)}>View skill recommendations</Link>
           </Button>
         </div>
 
@@ -246,7 +262,13 @@ export default function Recommend({ skill, employees, filters }) {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
-                      <span className="sr-only">Select</span>
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={toggleAllVisible}
+                        className="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
+                        aria-label="Select all visible employees"
+                      />
                     </TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Position</TableHead>
@@ -257,30 +279,50 @@ export default function Recommend({ skill, employees, filters }) {
                 </TableHeader>
                 <TableBody>
                   {rows.length > 0 ? (
-                    rows.map((employee) => (
-                      <TableRow key={employee.id}>
-                        <TableCell>
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.includes(employee.id)}
-                            onChange={() => toggleEmployee(employee.id)}
-                            className="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium text-slate-900">{employee.name}</div>
-                          <div className="text-sm text-muted-foreground">{employee.email}</div>
-                        </TableCell>
-                        <TableCell>{employee.position_name ?? "—"}</TableCell>
-                        <TableCell>{employee.department_name ?? "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{employee.membership_status ?? "—"}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <StatusStack employee={employee} />
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    rows.map((employee) => {
+                      const employeeId = getEmployeeId(employee);
+                      const isSelected = selectedIds.includes(employeeId);
+
+                      return (
+                        <TableRow
+                          key={employeeId}
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={isSelected}
+                          className="cursor-pointer select-none"
+                          onClick={() => toggleEmployee(employeeId)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              toggleEmployee(employeeId);
+                            }
+                          }}
+                        >
+                          <TableCell>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={() => toggleEmployee(employeeId)}
+                              className="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
+                              aria-label={`Select ${employee.name}`}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium text-slate-900">{employee.name}</div>
+                            <div className="text-sm text-muted-foreground">{employee.email}</div>
+                          </TableCell>
+                          <TableCell>{employee.position_name ?? "—"}</TableCell>
+                          <TableCell>{employee.department_name ?? "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{employee.membership_status ?? "—"}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <StatusStack employee={employee} />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
@@ -292,9 +334,32 @@ export default function Recommend({ skill, employees, filters }) {
               </Table>
             </div>
 
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <div>Showing {rows.length} staff on this page.</div>
-              <div>{employees?.links ? null : null}</div>
+            <div className="flex flex-col gap-3 rounded-xl border bg-white px-4 py-3 text-sm text-muted-foreground shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                Showing {from && to ? `${from}-${to}` : rows.length} of {total || rows.length} staff.
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={currentPage <= 1}
+                  onClick={() => goToPage(currentPage - 1)}
+                >
+                  Previous
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Page {currentPage} of {lastPage}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={currentPage >= lastPage}
+                  onClick={() => goToPage(currentPage + 1)}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           </div>
 

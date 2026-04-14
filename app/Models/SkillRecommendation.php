@@ -29,4 +29,10 @@ class SkillRecommendation extends Model
     {
         return $this->hasMany(SkillRecommendationRecipient::class);
     }
+
+     public function recommendationRecipients(): HasMany
+    {
+        return $this->hasMany(SkillRecommendationRecipient::class);
+    }
+
 }

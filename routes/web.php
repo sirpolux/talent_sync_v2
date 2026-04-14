@@ -143,10 +143,7 @@ Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
         Route::get('/notifications', [TutorDashboardController::class, 'notifications'])->name('notifications.index');
     });
 
-    // Route::prefix('admin/trainers')->name('admin.trainers.')->group(function () {
-    //     Route::get('{trainer}/skills', [AdminTrainerController::class, 'skills'])->name('skills');
-    //     Route::post('{trainer}/skills', [AdminTrainerController::class, 'storeSkill'])->name('skills.store');
-    // });
+
 });
 
 Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(function () {
@@ -177,14 +174,6 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     Route::post('/admin/company/edit/logo', [AdminOrganizationController::class, 'updateCompanyLogo'])
         ->name('admin.company.update.logo');
 
-    // Departments
-    // Route::get('/admin/departments', [AdminDepartmentController::class, 'index'])->name('admin.departments.index');
-    // Route::get('/admin/departments/create', [AdminDepartmentController::class, 'create'])->name('admin.departments.create');
-    // Route::post('/admin/departments', [AdminDepartmentController::class, 'store'])->name('admin.departments.store');
-    // Route::get('/admin/departments/{department}/edit', [AdminDepartmentController::class, 'edit'])->name('admin.departments.edit');
-    // Route::patch('/admin/departments/{department}', [AdminDepartmentController::class, 'update'])->name('admin.departments.update');
-    // Route::delete('/admin/departments/{department}', [AdminDepartmentController::class, 'destroy'])->name('admin.departments.destroy');
-
     // Positions
     Route::name('admin.')->group(function () {
         Route::resource('/admin/positions', AdminPositionController::class);
@@ -204,10 +193,14 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
     Route::name('admin.')->prefix('admin')->group(function () {
 
         Route::resource('skills', AdminSkillController::class);
-        Route::get('skills/{skill}/recommend', [AdminSkillRecommendationController::class, 'create'])
+        Route::get('skills/{skill}/recommend', [AdminSkillRecommendationController::class, 'index'])
+            ->name('skills.recommend.index');
+        Route::get('skills/{skill}/recommend/create', [AdminSkillRecommendationController::class, 'create'])
             ->name('skills.recommend.create');
         Route::post('skills/{skill}/recommend', [AdminSkillRecommendationController::class, 'store'])
             ->name('skills.recommend.store');
+        Route::post('skills/{skill}/recommend/{recommendation}/recipients', [AdminSkillRecommendationController::class, 'appendRecipients'])
+            ->name('skills.recommend.recipients.store');
         Route::resource('competencies', AdminCompetencyController::class)->only(['index']);
 
         Route::get('competencies/departments/{department}', [AdminCompetencyController::class, 'department'])
