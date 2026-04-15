@@ -390,13 +390,13 @@ export default function AdminLayout({
         icon: <User2 className="w-5 h-5" />,
         label: "Account",
         children: [
-          { key: "account.profile", label: "My Profile", href: "profile.edit" },
-          { key: "account.security", label: "Security", href: "admin.account.password" },
-          {
-            key: "account.settings",
-            label: "Settings",
-            href: "admin.settings.index",
-          },
+          // { key: "account.profile", label: "My Profile", href: "profile.edit" },
+          { key: "account.security", label: "Change Password", href: "admin.account.password" },
+          // {
+          //   key: "account.settings",
+          //   label: "Settings",
+          //   href: "admin.settings.index",
+          // },
         ],
       },
     ],
