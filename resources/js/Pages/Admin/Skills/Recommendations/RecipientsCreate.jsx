@@ -32,6 +32,8 @@ function Pagination({ employees, filters, onPageChange, label = "employees" }) {
   const total = employees?.total ?? employees?.data?.length ?? 0;
   const perPage = filters?.per_page ?? employees?.per_page ?? 10;
 
+  
+
   return (
     <div className="flex flex-col gap-3 rounded-xl border bg-white px-4 py-3 text-sm text-muted-foreground shadow-sm sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -58,40 +60,43 @@ function Pagination({ employees, filters, onPageChange, label = "employees" }) {
   );
 }
 
-export default function RecipientsCreate({ skill, recommendation, employees, filters, status }) {
+
+export default function RecipientsCreate({ skill, recommendation, availableEmployees, filters, status }) {
   const [selectedIds, setSelectedIds] = useState([]);
 
-  const employeeData = employees?.data ?? [];
-  const currentPage = employees?.current_page ?? 1;
-  const perPage = filters?.per_page ?? employees?.per_page ?? 10;
+  const employeeData = availableEmployees?.data ?? [];
+  const currentPage = availableEmployees?.current_page ?? 1;
+  const perPage = filters?.per_page ?? availableEmployees?.per_page ?? 10;
 
   const recommendationId = recommendation?.id;
   const recommendationDate = recommendation?.recommended_at ?? recommendation?.created_at ?? "—";
   const recommendationReason = recommendation?.reason ?? "—";
   const recommendedBy = recommendation?.recommended_by ?? "—";
 
+  const getEmployeeId = (employee) => employee.org_user_id ?? employee.id;
   const selectedCount = selectedIds.length;
 
   const allVisibleSelected = useMemo(
-    () => employeeData.length > 0 && employeeData.every((employee) => selectedIds.includes(employee.organization_user_id)),
+    () => employeeData.length > 0 && employeeData.every((employee) => selectedIds.includes(getEmployeeId(employee))),
     [employeeData, selectedIds]
   );
 
-  const toggleEmployee = (organizationUserId) => {
+  const toggleEmployee = (employeeId) => {
     setSelectedIds((current) =>
-      current.includes(organizationUserId)
-        ? current.filter((id) => id !== organizationUserId)
-        : [...current, organizationUserId]
+      current.includes(employeeId)
+        ? current.filter((id) => id !== employeeId)
+        : [...current, employeeId]
     );
   };
 
   const toggleAllVisible = () => {
     setSelectedIds((current) => {
+      const visibleIds = employeeData.map(getEmployeeId);
+
       if (allVisibleSelected) {
-        return current.filter((id) => !employeeData.some((employee) => employee.organization_user_id === id));
+        return current.filter((id) => !visibleIds.includes(id));
       }
 
-      const visibleIds = employeeData.map((employee) => employee.organization_user_id);
       return Array.from(new Set([...current, ...visibleIds]));
     });
   };
@@ -310,16 +315,22 @@ export default function RecipientsCreate({ skill, recommendation, employees, fil
                     <tbody className="divide-y divide-slate-200 bg-white">
                       {employeeData.length > 0 ? (
                         employeeData.map((employee) => {
-                          const checked = selectedIds.includes(employee.organization_user_id);
+                          const employeeId = getEmployeeId(employee);
+                          const checked = selectedIds.includes(employeeId);
 
                           return (
-                            <tr key={employee.organization_user_id} className="text-sm text-slate-700">
+                            <tr
+                              key={employeeId}
+                              className="cursor-pointer text-sm text-slate-700"
+                              onClick={() => toggleEmployee(employeeId)}
+                            >
                               <td className="px-4 py-3">
                                 <input
                                   type="checkbox"
                                   className="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
                                   checked={checked}
-                                  onChange={() => toggleEmployee(employee.organization_user_id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={() => toggleEmployee(employeeId)}
                                 />
                               </td>
                               <td className="px-4 py-3 font-medium text-slate-900">{employee.name ?? "—"}</td>
@@ -365,7 +376,7 @@ export default function RecipientsCreate({ skill, recommendation, employees, fil
           </Card>
         </div>
 
-        <Pagination employees={employees} filters={filters} onPageChange={goToPage} label="employees available to add" />
+        <Pagination employees={availableEmployees} filters={filters} onPageChange={(page) => router.get(route("admin.skills.recommend.recipients.create", { skill: skill?.id, recommendation: recommendationId, page, per_page: perPage }), {}, { preserveState: true, preserveScroll: true, replace: true })} label="employees available to add" />
       </div>
     </AdminLayout>
   );

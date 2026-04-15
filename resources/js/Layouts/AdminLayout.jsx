@@ -191,18 +191,18 @@ export default function AdminLayout({
         label: "Notifications",
         href: "admin.notifications.index",
       },
-      {
-        key: "leave-management",
-        icon: <Users className="w-5 h-5" />,
-        label: "Leave Management",
-        children: [
-          {
-            key: "leave-management.requests",
-            label: "Leave Requests",
-            href: "admin.leave-requests.index",
-          },
-        ],
-      },
+      // {
+      //   key: "leave-management",
+      //   icon: <Users className="w-5 h-5" />,
+      //   label: "Leave Management",
+      //   children: [
+      //     {
+      //       key: "leave-management.requests",
+      //       label: "Leave Requests",
+      //       href: "admin.leave-requests.index",
+      //     },
+      //   ],
+      // },
       {
         key: "setup",
         icon: <MonitorCog className="w-5 h-5" />,
@@ -243,11 +243,11 @@ export default function AdminLayout({
             label: "Add Employee",
             href: "admin.employees.create",
           },
-          {
-            key: "staff.assignments",
-            label: "Position Assignments",
-            href: "admin.staff.assignments.index",
-          },
+          // {
+          //   key: "staff.assignments",
+          //   label: "Position Assignments",
+          //   href: "admin.staff.assignments.index",
+          // },
         ],
       },
       {
