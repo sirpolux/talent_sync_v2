@@ -117,74 +117,10 @@ class AdminSkillRecommendationController extends Controller
         $perPage = (int) $request->get('per_page', 20);
         $perPage = in_array($perPage, [10, 20], true) ? $perPage : 20;
 
-        $employees = User::query()
-            ->select([
-                'organization_user.id as org_user_id',
-                'users.id as user_id',
-                'users.name',
-                'users.email',
-                'organization_user.membership_status',
-                'departments.name as department_name',
-                'positions.name as position_name',
-            ])
-            ->join('organization_user', 'organization_user.user_id', '=', 'users.id')
-            ->leftJoin('departments', 'departments.id', '=', 'organization_user.department_id')
-            ->leftJoin('positions', 'positions.id', '=', 'organization_user.position_id')
-            ->where('organization_user.organization_id', $orgId)
-            ->where('organization_user.is_employee', true)
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('users.name', 'like', "%{$search}%")
-                        ->orWhere('users.email', 'like', "%{$search}%")
-                        ->orWhere('departments.name', 'like', "%{$search}%")
-                        ->orWhere('positions.name', 'like', "%{$search}%");
-                });
-            })
-            ->orderBy('users.name')
-            ->paginate($perPage)
-            ->withQueryString();
+        [$employees, $employeeIds] = $this->getEligibleEmployees($request, $skill, $orgId, $search, $perPage);
 
-        $employeeIds = collect($employees->items())
-            ->pluck('org_user_id')
-            ->map(fn ($id) => (int) $id)
-            ->values();
-
-        $hasSkillIds = EmployeeSkillAllocation::query()
-            ->where('skill_id', $skill->id)
-            ->whereIn('organization_user_id', $employeeIds)
-            ->pluck('organization_user_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-
-        $inTrainingIds = TrainingSessionParticipant::query()
-            ->whereIn('organization_user_id', $employeeIds)
-            ->whereHas('trainingSession', function ($query) use ($orgId, $skill) {
-                $query->where('organization_id', $orgId)
-                    ->where('skill_id', $skill->id)
-                    ->where('status', 'in_progress');
-            })
-            ->pluck('organization_user_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-
-        $pendingRecommendationIds = SkillRecommendationRecipient::query()
-            ->whereIn('organization_user_id', $employeeIds)
-            ->whereHas('skillRecommendation', function ($query) use ($orgId, $skill) {
-                $query->where('organization_id', $orgId)
-                    ->where('skill_id', $skill->id)
-                    ->where('status', 'active');
-            })
-            ->where('registration_status', 'pending')
-            ->pluck('organization_user_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-
-        $employees->getCollection()->transform(function ($employee) use ($hasSkillIds, $inTrainingIds, $pendingRecommendationIds) {
-            $orgUserId = (int) $employee->org_user_id;
-
-            $employee->has_skill = in_array($orgUserId, $hasSkillIds, true);
-            $employee->is_in_training = in_array($orgUserId, $inTrainingIds, true);
-            $employee->recommendation_status = in_array($orgUserId, $pendingRecommendationIds, true) ? 'pending' : null;
+        $employees->getCollection()->transform(function ($employee) use ($employeeIds, $orgId, $skill) {
+            $this->applyEmployeeEligibilityFlags($employee, $employeeIds, $orgId, $skill);
 
             return $employee;
         });
@@ -195,6 +131,79 @@ class AdminSkillRecommendationController extends Controller
                 'name' => $skill->name,
             ],
             'employees' => $employees,
+            'filters' => [
+                'search' => $search,
+                'per_page' => $perPage,
+            ],
+        ]);
+    }
+
+    public function recipientsCreate(Request $request, Skill $skill, SkillRecommendation $recommendation): Response
+    {
+        $orgId = (int) $request->session()->get('current_organization_id');
+
+        abort_unless($orgId, 403, 'No active organization selected.');
+        abort_unless($skill->organization_id === null || (int) $skill->organization_id === $orgId, 404);
+        abort_unless((int) $recommendation->organization_id === $orgId, 404);
+        abort_unless((int) $recommendation->skill_id === (int) $skill->id, 404);
+        abort_unless($recommendation->status === 'active', 422, 'Only active recommendations can receive additional recipients.');
+
+        $search = trim((string) $request->get('search', ''));
+        $perPage = (int) $request->get('per_page', 20);
+        $perPage = in_array($perPage, [10, 20], true) ? $perPage : 20;
+
+        $recommendation->load([
+            'recommendationRecipients.organizationUser.user',
+            'recommendationRecipients.organizationUser.department',
+            'recommendationRecipients.organizationUser.position',
+        ]);
+
+        $recipientIds = $recommendation->recommendationRecipients
+            ->pluck('organization_user_id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        [$employees, $employeeIds] = $this->getEligibleEmployees(
+            $request,
+            $skill,
+            $orgId,
+            $search,
+            $perPage,
+            $recommendation->id,
+            $recipientIds->all()
+        );
+
+        $employees->getCollection()->transform(function ($employee) use ($employeeIds, $orgId, $skill, $recommendation) {
+            $this->applyEmployeeEligibilityFlags($employee, $employeeIds, $orgId, $skill, $recommendation->id);
+
+            return $employee;
+        });
+
+        return Inertia::render('Admin/Skills/Recommendations/RecipientsCreate', [
+            'skill' => [
+                'id' => $skill->id,
+                'name' => $skill->name,
+            ],
+            'recommendation' => [
+                'id' => $recommendation->id,
+                'status' => $recommendation->status,
+                'recipient_count' => $recommendation->recommendationRecipients->count(),
+                'recipients' => $recommendation->recommendationRecipients->map(function ($recipient) {
+                    $orgUser = $recipient->organizationUser;
+                    $user = $orgUser?->user;
+
+                    return [
+                        'id' => $recipient->id,
+                        'organization_user_id' => $recipient->organization_user_id,
+                        'registration_status' => $recipient->registration_status,
+                        'name' => $user?->name,
+                        'email' => $user?->email,
+                        'department_name' => $orgUser?->department?->name,
+                        'position_name' => $orgUser?->position?->name,
+                    ];
+                })->values(),
+            ],
+            'availableEmployees' => $employees,
             'filters' => [
                 'search' => $search,
                 'per_page' => $perPage,
@@ -369,7 +378,87 @@ class AdminSkillRecommendationController extends Controller
         }
 
         return redirect()
-            ->route('admin.skills.recommend.index', $skill)
+            ->route('admin.skills.recommend.recipients.create', [$skill, $recommendation])
             ->with('status', 'Recipients added successfully.');
+    }
+
+    private function getEligibleEmployees(Request $request, Skill $skill, int $orgId, string $search, int $perPage, ?int $recommendationId = null, array $excludedOrgUserIds = []): array
+    {
+        $employees = User::query()
+            ->select([
+                'organization_user.id as org_user_id',
+                'users.id as user_id',
+                'users.name',
+                'users.email',
+                'organization_user.membership_status',
+                'departments.name as department_name',
+                'positions.name as position_name',
+            ])
+            ->join('organization_user', 'organization_user.user_id', '=', 'users.id')
+            ->leftJoin('departments', 'departments.id', '=', 'organization_user.department_id')
+            ->leftJoin('positions', 'positions.id', '=', 'organization_user.position_id')
+            ->where('organization_user.organization_id', $orgId)
+            ->where('organization_user.is_employee', true)
+            ->when(! empty($excludedOrgUserIds), function ($query) use ($excludedOrgUserIds) {
+                $query->whereNotIn('organization_user.id', $excludedOrgUserIds);
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('users.name', 'like', "%{$search}%")
+                        ->orWhere('users.email', 'like', "%{$search}%")
+                        ->orWhere('departments.name', 'like', "%{$search}%")
+                        ->orWhere('positions.name', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('users.name')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $employeeIds = collect($employees->items())
+            ->pluck('org_user_id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        return [$employees, $employeeIds];
+    }
+
+    private function applyEmployeeEligibilityFlags($employee, $employeeIds, int $orgId, Skill $skill, ?int $recommendationId = null): void
+    {
+        $orgUserId = (int) $employee->org_user_id;
+
+        $hasSkillIds = EmployeeSkillAllocation::query()
+            ->where('skill_id', $skill->id)
+            ->whereIn('organization_user_id', $employeeIds)
+            ->pluck('organization_user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $inTrainingIds = TrainingSessionParticipant::query()
+            ->whereIn('organization_user_id', $employeeIds)
+            ->whereHas('trainingSession', function ($query) use ($orgId, $skill) {
+                $query->where('organization_id', $orgId)
+                    ->where('skill_id', $skill->id)
+                    ->where('status', 'in_progress');
+            })
+            ->pluck('organization_user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $pendingRecommendationIds = SkillRecommendationRecipient::query()
+            ->whereIn('organization_user_id', $employeeIds)
+            ->whereHas('skillRecommendation', function ($query) use ($orgId, $skill, $recommendationId) {
+                $query->where('organization_id', $orgId)
+                    ->where('skill_id', $skill->id)
+                    ->where('status', 'active')
+                    ->when($recommendationId, fn ($q) => $q->where('id', $recommendationId));
+            })
+            ->where('registration_status', 'pending')
+            ->pluck('organization_user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $employee->has_skill = in_array($orgUserId, $hasSkillIds, true);
+        $employee->is_in_training = in_array($orgUserId, $inTrainingIds, true);
+        $employee->recommendation_status = in_array($orgUserId, $pendingRecommendationIds, true) ? 'pending' : null;
     }
 }

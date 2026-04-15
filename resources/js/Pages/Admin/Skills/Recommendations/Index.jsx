@@ -34,7 +34,7 @@ export default function Index({ skill, recommendations, filters, activeRecommend
   const perPage = filters?.per_page ?? recommendations?.per_page ?? 10;
 
   const appendRecipientsHref = (recommendationId) =>
-    route("admin.skills.recommend.recipients.store", { skill: skill.id, recommendation: recommendationId });
+    route("admin.skills.recommend.recipients.create", { skill: skill.id, recommendation: recommendationId });
 
   const goToPage = (page) => {
     router.get(
@@ -45,7 +45,7 @@ export default function Index({ skill, recommendations, filters, activeRecommend
   };
 
   const handleAddRecipients = (recommendationId) => {
-    router.visit(appendRecipientsHref(recommendationId));
+    router.get(appendRecipientsHref(recommendationId));
   };
 
   return (

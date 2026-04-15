@@ -199,6 +199,8 @@ Route::middleware(['auth', 'verified', 'org.context', 'org.admin'])->group(funct
             ->name('skills.recommend.create');
         Route::post('skills/{skill}/recommend', [AdminSkillRecommendationController::class, 'store'])
             ->name('skills.recommend.store');
+        Route::get('skills/{skill}/recommend/{recommendation}/recipients/create', [AdminSkillRecommendationController::class, 'recipientsCreate'])
+            ->name('skills.recommend.recipients.create');
         Route::post('skills/{skill}/recommend/{recommendation}/recipients', [AdminSkillRecommendationController::class, 'appendRecipients'])
             ->name('skills.recommend.recipients.store');
         Route::resource('competencies', AdminCompetencyController::class)->only(['index']);
