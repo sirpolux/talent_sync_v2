@@ -23,7 +23,14 @@ class TrainingSessionApplicationStatusNotification extends Notification implemen
 
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast'];
+        $channels = ['database', 'broadcast'];
+
+        // Check user preferences for email
+        if (\App\Models\NotificationPreference::userWantsEmail($notifiable->id, 'training_session_application')) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
     }
 
     public function toArray(object $notifiable): array

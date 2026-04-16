@@ -15,6 +15,7 @@ import {
   BookOpen,
   BarChart3,
   User2,
+  Bell,
 } from "lucide-react";
 
 import NotificationBell from "@/Components/NotificationBell";
@@ -187,7 +188,7 @@ export default function AdminLayout({
       },
       {
         key: "notifications",
-        icon: <Target className="w-5 h-5" />,
+        icon: <Bell className="w-5 h-5" />,
         label: "Notifications",
         href: "admin.notifications.index",
       },

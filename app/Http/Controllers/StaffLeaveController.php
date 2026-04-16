@@ -123,9 +123,24 @@ class StaffLeaveController extends Controller
             'status' => LeaveRequest::STATUS_PENDING,
         ]);
 
-        $request->user()?->notify(new LeaveRequestSubmittedNotification($leaveRequest));
+        // Notify organization admins about the new leave request
+        $this->notifyOrganizationAdmins($leaveRequest);
 
         return redirect()->route('staff.leave.index')->with('success', 'Leave request submitted successfully.');
+    }
+
+    protected function notifyOrganizationAdmins(LeaveRequest $leaveRequest): void
+    {
+        // Get all organization admins
+        $adminUsers = $leaveRequest->organization
+            ->users()
+            ->wherePivot('is_org_admin', true)
+            ->get();
+
+        // Send notification to each admin
+        foreach ($adminUsers as $admin) {
+            $admin->notify(new LeaveRequestSubmittedNotification($leaveRequest));
+        }
     }
 
     protected function resolveOrganizationUser(Request $request): OrganizationUser
