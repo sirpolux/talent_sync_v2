@@ -35,6 +35,7 @@ use App\Http\Controllers\StaffSkillController;
 use App\Http\Controllers\StaffTrainingSessionController;
 use App\Http\Controllers\StaffLeaveController;
 use App\Http\Controllers\TutorSkillController;
+use App\Http\Controllers\StaffCareerPathController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -90,6 +91,11 @@ Route::middleware(['auth', 'verified', 'org.context'])->group(function () {
         Route::get('/promotions/eligibility', fn() => Inertia::render('Staff/Promotions/Eligibility'))->name('promotions.eligibility');
         Route::get('/promotions', fn() => Inertia::render('Staff/Promotions/Index'))->name('promotions.index');
         Route::get('/promotions/apply', fn() => Inertia::render('Staff/Promotions/Create'))->name('promotions.create');
+
+        // Career paths
+        Route::get('/career-paths', [StaffCareerPathController::class, 'index'])->name('career-paths.index');
+        Route::get('/career-paths/{careerPath}', [StaffCareerPathController::class, 'show'])->name('career-paths.show');
+        Route::post('/career-paths/{careerPath}/select', [StaffCareerPathController::class, 'store'])->name('career-paths.store');
 
         // Leave
         Route::get('/leave', [StaffLeaveController::class, 'index'])->name('leave.index');

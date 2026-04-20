@@ -69,4 +69,9 @@ class OrganizationUser extends Model
     {
         return $this->hasMany(EmployeeSkillAllocation::class, 'organization_user_id');
     }
+
+    public function careerPathSelections(): HasMany
+    {
+        return $this->hasMany(EmployeeCareerPathSelection::class, 'organization_user_id');
+    }
 }

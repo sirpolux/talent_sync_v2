@@ -7,13 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SkillRecommendationRecipient extends Model
 {
-    protected $guarded = [];
-
-    protected $casts = [
-        'notified_at' => 'datetime',
-        'read_at' => 'datetime',
-        'registered_at' => 'datetime',
-        'completed_at' => 'datetime',
+    protected $fillable = [
+        'organization_id',
+        'skill_recommendation_id',
+        'user_id',
+        'employee_id',
+        'employee_career_path_selection_id',
+        'status',
     ];
 
     public function skillRecommendation(): BelongsTo
@@ -21,8 +21,8 @@ class SkillRecommendationRecipient extends Model
         return $this->belongsTo(SkillRecommendation::class);
     }
 
-    public function organizationUser(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(OrganizationUser::class);
+        return $this->belongsTo(User::class);
     }
 }
