@@ -210,6 +210,11 @@ export default function StaffLayout({
         label: "Career & Promotion",
         children: [
           {
+            key: "career.paths",
+            label: "Career Paths",
+            href: "staff.career-paths.index",
+          },
+          {
             key: "promotions.eligibility",
             label: "Promotion Eligibility",
             href: "staff.promotions.eligibility",

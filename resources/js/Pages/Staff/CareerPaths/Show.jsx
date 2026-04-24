@@ -11,6 +11,7 @@ export default function Show({ careerPath, activeSelection = null }) {
   };
 
   const isSelected = activeSelection?.career_path_id === careerPath.id;
+  const steps = Array.isArray(careerPath.steps) ? careerPath.steps : [];
 
   return (
     <StaffLayout>
@@ -45,28 +46,34 @@ export default function Show({ careerPath, activeSelection = null }) {
         <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4">
             <h2 className="text-lg font-semibold text-gray-900">Path steps</h2>
-            <p className="mt-1 text-sm text-gray-500">Review the stages in this career path.</p>
+            <p className="mt-1 text-sm text-gray-500">Review the position transitions in this career path.</p>
           </div>
 
           <div className="divide-y divide-gray-200">
-            {(careerPath.steps || []).map((step, index) => (
-              <div key={step.id} className="px-5 py-4">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
-                    {index + 1}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-gray-900">{step.name}</h3>
-                    {step.description ? <p className="mt-1 text-sm text-gray-600">{step.description}</p> : null}
-                    {step.transition_label ? (
-                      <p className="mt-2 text-xs uppercase tracking-wide text-gray-500">{step.transition_label}</p>
-                    ) : null}
+            {steps.map((step, index) => {
+              const fromPositionName = step.from_position_name || step.fromPosition?.name || 'Unknown position';
+              const toPositionName = step.to_position_name || step.toPosition?.name || 'Unknown position';
+              const transitionLabel = `${fromPositionName} → ${toPositionName}`;
+
+              return (
+                <div key={step.id} className="px-5 py-4">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-gray-900">{transitionLabel}</h3>
+                      {step.track ? <p className="mt-1 text-sm text-gray-600">{step.track}</p> : null}
+                      {step.order !== null && step.order !== undefined ? (
+                        <p className="mt-2 text-xs uppercase tracking-wide text-gray-500">Step order: {step.order}</p>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
-            {(careerPath.steps || []).length === 0 ? (
+            {steps.length === 0 ? (
               <div className="px-5 py-8 text-center text-sm text-gray-500">No steps have been defined for this career path.</div>
             ) : null}
           </div>

@@ -99,6 +99,7 @@ class AdminCareerPathController extends Controller
     {
         $orgId = (int) session('current_organization_id');
         $data = $request->validated();
+       // dd($request->all());
 
         /** @var CareerPath $path */
         $path = CareerPath::make();
@@ -138,8 +139,18 @@ class AdminCareerPathController extends Controller
 
         $path = CareerPath::query()
             ->where('organization_id', $orgId)
-            ->with(['department:id,name', 'steps.fromPosition:id,name', 'steps.toPosition:id,name'])
+            ->with(['department:id,name', 'steps'])
             ->findOrFail($id);
+
+        $positionIds = $path->steps
+            ->flatMap(fn (CareerPathStep $step) => [$step->from_position_id, $step->to_position_id])
+            ->unique()
+            ->values();
+
+        $positionNames = Position::query()
+            ->where('organization_id', $orgId)
+            ->whereIn('id', $positionIds)
+            ->pluck('name', 'id');
 
         $steps = $path->steps
             ->sortBy(fn (CareerPathStep $s) => $s->order ?? PHP_INT_MAX)
@@ -147,9 +158,9 @@ class AdminCareerPathController extends Controller
             ->map(fn (CareerPathStep $s) => [
                 'id' => $s->id,
                 'from_position_id' => $s->from_position_id,
-                'from_position_name' => $s->fromPosition?->name,
+                'from_position_name' => $positionNames[$s->from_position_id] ?? null,
                 'to_position_id' => $s->to_position_id,
-                'to_position_name' => $s->toPosition?->name,
+                'to_position_name' => $positionNames[$s->to_position_id] ?? null,
                 'track' => $s->track,
                 'order' => $s->order,
             ]);

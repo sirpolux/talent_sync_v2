@@ -15,8 +15,9 @@ class StaffCareerPathController extends Controller
 {
     public function index(Request $request): Response
     {
-        $organizationId = $request->session()->get('current_organization_id');
+        $organizationId = (int) $request->session()->get('current_organization_id');
         $user = $request->user();
+
 
         $organizationUser = OrganizationUser::query()
             ->with(['department'])
@@ -34,20 +35,34 @@ class StaffCareerPathController extends Controller
         $activeSelection = EmployeeCareerPathSelection::query()
             ->with(['careerPath.steps'])
             ->where('organization_id', $organizationId)
-            ->where('user_id', $user->id)
+            ->where('organization_user_id', $organizationUser->id)
             ->where('is_active', true)
             ->first();
 
+        $selectedCareerPath = $activeSelection?->careerPath;
+
+        $availableCareerPaths = $selectedCareerPath
+            ? $careerPaths->where('id', $selectedCareerPath->id)->values()
+            : collect();
+
+        $otherCareerPaths = $selectedCareerPath
+            ? $careerPaths->reject(fn (CareerPath $careerPath) => (int) $careerPath->id === (int) $selectedCareerPath->id)->values()
+            : $careerPaths->values();
+
         return Inertia::render('Staff/CareerPaths/Index', [
             'careerPaths' => $careerPaths,
+            'availableCareerPaths' => $availableCareerPaths,
+            'otherCareerPaths' => $otherCareerPaths,
             'department' => $organizationUser->department,
             'activeSelection' => $activeSelection,
+            'departmentId' => $organizationUser->department_id,
+            'organizationId' => $organizationId,
         ]);
     }
 
     public function show(Request $request, CareerPath $careerPath): Response
     {
-        $organizationId = $request->session()->get('current_organization_id');
+        $organizationId = (int) $request->session()->get('current_organization_id');
         $user = $request->user();
 
         $organizationUser = OrganizationUser::query()
@@ -62,9 +77,30 @@ class StaffCareerPathController extends Controller
 
         $careerPath->load(['department', 'steps']);
 
-        $activeSelection = EmployeeCareerPathSelection::query()
+        $positionIds = $careerPath->steps
+            ->flatMap(fn ($step) => [$step->from_position_id, $step->to_position_id])
+            ->unique()
+            ->values();
+
+        $positionNames = \App\Models\Position::query()
             ->where('organization_id', $organizationId)
-            ->where('user_id', $user->id)
+            ->whereIn('id', $positionIds)
+            ->pluck('name', 'id');
+
+        $careerPath->setRelation(
+            'steps',
+            $careerPath->steps->map(function ($step) use ($positionNames) {
+                $step->setAttribute('from_position_name', $positionNames[$step->from_position_id] ?? null);
+                $step->setAttribute('to_position_name', $positionNames[$step->to_position_id] ?? null);
+
+                return $step;
+            })
+        );
+
+        $activeSelection = EmployeeCareerPathSelection::query()
+            ->with(['careerPath.steps'])
+            ->where('organization_id', $organizationId)
+            ->where('organization_user_id', $organizationUser->id)
             ->where('is_active', true)
             ->first();
 
@@ -76,7 +112,7 @@ class StaffCareerPathController extends Controller
 
     public function store(Request $request, CareerPath $careerPath): RedirectResponse
     {
-        $organizationId = $request->session()->get('current_organization_id');
+        $organizationId = (int) $request->session()->get('current_organization_id');
         $user = $request->user();
 
         $organizationUser = OrganizationUser::query()
@@ -89,18 +125,35 @@ class StaffCareerPathController extends Controller
             403
         );
 
-        DB::transaction(function () use ($organizationId, $user, $careerPath) {
+        $activeSelection = EmployeeCareerPathSelection::query()
+            ->where('organization_id', $organizationId)
+            ->where('organization_user_id', $organizationUser->id)
+            ->where('is_active', true)
+            ->first();
+
+        if ($activeSelection && (int) $activeSelection->career_path_id !== (int) $careerPath->id) {
+            return redirect()
+                ->route('staff.career-paths.show', $activeSelection->career_path_id)
+                ->with('status', 'Your career path is already selected. Only an administrator can change it.');
+        }
+
+        DB::transaction(function () use ($organizationId, $organizationUser, $careerPath) {
             EmployeeCareerPathSelection::query()
                 ->where('organization_id', $organizationId)
-                ->where('user_id', $user->id)
+                ->where('organization_user_id', $organizationUser->id)
                 ->update(['is_active' => false]);
 
-            EmployeeCareerPathSelection::create([
-                'organization_id' => $organizationId,
-                'user_id' => $user->id,
-                'career_path_id' => $careerPath->id,
-                'is_active' => true,
-            ]);
+            EmployeeCareerPathSelection::updateOrCreate(
+                [
+                    'organization_id' => $organizationId,
+                    'organization_user_id' => $organizationUser->id,
+                    'career_path_id' => $careerPath->id,
+                ],
+                [
+                    'is_active' => true,
+                    'selected_at' => now(),
+                ]
+            );
         });
 
         return redirect()
