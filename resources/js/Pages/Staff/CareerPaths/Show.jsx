@@ -2,7 +2,7 @@ import React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import StaffLayout from '@/Layouts/StaffLayout';
 
-export default function Show({ careerPath, activeSelection = null }) {
+export default function Show({ careerPath, activeSelection = null, promotionEligibility = null }) {
   const { post, processing } = useForm();
 
   const handleSelect = (e) => {
@@ -42,6 +42,96 @@ export default function Show({ careerPath, activeSelection = null }) {
             <p className="mt-4 text-sm leading-6 text-gray-700">{careerPath.description}</p>
           ) : null}
         </div>
+
+        {promotionEligibility ? (
+          <div className="mb-6 rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-200 px-5 py-4">
+              <h2 className="text-lg font-semibold text-gray-900">Promotion eligibility</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Review your current readiness against your selected career path.
+              </p>
+            </div>
+
+            <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
+              <div className="rounded-md bg-gray-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Current position skills</p>
+                <p className="mt-2 text-2xl font-semibold text-gray-900">
+                  {promotionEligibility.current_skill_coverage?.percentage ?? 0}%
+                </p>
+                <p className="mt-1 text-sm text-gray-600">Minimum required: 80%</p>
+              </div>
+
+              <div className="rounded-md bg-gray-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Next position skills</p>
+                <p className="mt-2 text-2xl font-semibold text-gray-900">
+                  {promotionEligibility.next_skill_coverage?.percentage ?? 0}%
+                </p>
+                <p className="mt-1 text-sm text-gray-600">Minimum required: 60%</p>
+              </div>
+
+              <div className="rounded-md bg-gray-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Tenure</p>
+                <p className="mt-2 text-2xl font-semibold text-gray-900">
+                  {promotionEligibility.tenure?.eligible ? 'Met' : 'Not met'}
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  {promotionEligibility.tenure?.required_value != null && promotionEligibility.tenure?.required_type
+                    ? `Requires ${promotionEligibility.tenure.required_value} ${promotionEligibility.tenure.required_type}`
+                    : 'No duration requirement set'}
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 px-5 py-4">
+              <div
+                className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                  promotionEligibility.eligible
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-amber-100 text-amber-800'
+                }`}
+              >
+                {promotionEligibility.eligible ? 'Eligible for promotion' : 'Not yet eligible'}
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Current position gaps</h3>
+                  {promotionEligibility.missing_requirements?.current_position_skills?.length ? (
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                      {promotionEligibility.missing_requirements.current_position_skills.map((skill) => (
+                        <li key={skill.id}>{skill.name}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm text-gray-600">No missing skills for the current position.</p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Next position gaps</h3>
+                  {promotionEligibility.missing_requirements?.next_position_skills?.length ? (
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                      {promotionEligibility.missing_requirements.next_position_skills.map((skill) => (
+                        <li key={skill.id}>{skill.name}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm text-gray-600">No missing skills for the next position.</p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Duration gap</h3>
+                  <p className="mt-2 text-sm text-gray-600">
+                    {promotionEligibility.tenure?.eligible
+                      ? 'Tenure requirement has been met.'
+                      : promotionEligibility.missing_requirements?.tenure || 'Tenure requirement is not met.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4">

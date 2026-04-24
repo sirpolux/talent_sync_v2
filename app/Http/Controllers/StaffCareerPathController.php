@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CareerPath;
 use App\Models\EmployeeCareerPathSelection;
 use App\Models\OrganizationUser;
+use App\Services\PromotionEligibilityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -60,12 +61,13 @@ class StaffCareerPathController extends Controller
         ]);
     }
 
-    public function show(Request $request, CareerPath $careerPath): Response
+    public function show(Request $request, CareerPath $careerPath, PromotionEligibilityService $eligibilityService): Response
     {
         $organizationId = (int) $request->session()->get('current_organization_id');
         $user = $request->user();
 
         $organizationUser = OrganizationUser::query()
+            ->with(['position.skills'])
             ->where('organization_id', $organizationId)
             ->where('user_id', $user->id)
             ->firstOrFail();
@@ -104,9 +106,14 @@ class StaffCareerPathController extends Controller
             ->where('is_active', true)
             ->first();
 
+        $promotionEligibility = $activeSelection
+            ? $eligibilityService->evaluate($organizationUser, $activeSelection->careerPath->loadMissing(['steps.toPosition.skills']))
+            : null;
+
         return Inertia::render('Staff/CareerPaths/Show', [
             'careerPath' => $careerPath,
             'activeSelection' => $activeSelection,
+            'promotionEligibility' => $promotionEligibility,
         ]);
     }
 
