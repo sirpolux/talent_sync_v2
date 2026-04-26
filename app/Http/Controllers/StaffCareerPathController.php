@@ -19,7 +19,6 @@ class StaffCareerPathController extends Controller
         $organizationId = (int) $request->session()->get('current_organization_id');
         $user = $request->user();
 
-
         $organizationUser = OrganizationUser::query()
             ->with(['department'])
             ->where('organization_id', $organizationId)
@@ -106,14 +105,47 @@ class StaffCareerPathController extends Controller
             ->where('is_active', true)
             ->first();
 
-        $promotionEligibility = $activeSelection
-            ? $eligibilityService->evaluate($organizationUser, $activeSelection->careerPath->loadMissing(['steps.toPosition.skills']))
+        $selectedCareerPath = $activeSelection?->careerPath;
+
+        $promotionEligibility = $selectedCareerPath
+            ? $eligibilityService->evaluate($organizationUser, $selectedCareerPath->loadMissing(['steps.toPosition.skills']))
+            : null;
+
+        $currentStepIndex = $selectedCareerPath && $organizationUser->position
+            ? $eligibilityService->resolveCurrentStepIndex($selectedCareerPath, $organizationUser->position)
             : null;
 
         return Inertia::render('Staff/CareerPaths/Show', [
-            'careerPath' => $careerPath,
-            'activeSelection' => $activeSelection,
+            'careerPath' => [
+                'id' => $careerPath->id,
+                'name' => $careerPath->name,
+                'description' => $careerPath->description,
+                'department' => $careerPath->department ? [
+                    'id' => $careerPath->department->id,
+                    'name' => $careerPath->department->name,
+                ] : null,
+                'steps' => $careerPath->steps->map(fn ($step) => [
+                    'id' => $step->id,
+                    'order' => $step->order,
+                    'track' => $step->track,
+                    'from_position_id' => $step->from_position_id,
+                    'to_position_id' => $step->to_position_id,
+                    'from_position_name' => $step->getAttribute('from_position_name'),
+                    'to_position_name' => $step->getAttribute('to_position_name'),
+                ])->values(),
+            ],
+            'activeSelection' => $activeSelection ? [
+                'id' => $activeSelection->id,
+                'career_path_id' => $activeSelection->career_path_id,
+                'is_active' => (bool) $activeSelection->is_active,
+                'selected_at' => $activeSelection->selected_at?->toDateTimeString(),
+            ] : null,
+            'currentPosition' => $organizationUser->position ? [
+                'id' => $organizationUser->position->id,
+                'name' => $organizationUser->position->name,
+            ] : null,
             'promotionEligibility' => $promotionEligibility,
+            'currentStepIndex' => $currentStepIndex,
         ]);
     }
 

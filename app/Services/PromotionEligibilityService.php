@@ -18,10 +18,10 @@ class PromotionEligibilityService
         if (! $currentPosition) {
             return [
                 'eligible' => false,
-                'current_position' => null,
-                'next_position' => $this->resolveNextPosition($careerPath, null),
-                'current_skill_coverage' => null,
-                'next_skill_coverage' => null,
+                'current_position_id' => null,
+                'next_position_id' => $this->resolveNextPosition($careerPath, null)?->id,
+                'current_skill_percentage' => null,
+                'next_skill_percentage' => null,
                 'tenure' => [
                     'eligible' => false,
                     'required_value' => null,
@@ -30,9 +30,9 @@ class PromotionEligibilityService
                     'missing_days' => null,
                     'message' => 'Employee does not have a current position assigned.',
                 ],
-                'missing_requirements' => [
-                    'current_position_skills' => [],
-                    'next_position_skills' => [],
+                'missing_skills' => [
+                    'current_position' => [],
+                    'next_position' => [],
                     'tenure' => 'Employee does not have a current position assigned.',
                 ],
             ];
@@ -49,23 +49,34 @@ class PromotionEligibilityService
 
         return [
             'eligible' => $eligible,
-            'current_position' => [
-                'id' => $currentPosition->id,
-                'name' => $currentPosition->name,
-            ],
-            'next_position' => $nextPosition ? [
-                'id' => $nextPosition->id,
-                'name' => $nextPosition->name,
-            ] : null,
-            'current_skill_coverage' => $currentSkillCoverage,
-            'next_skill_coverage' => $nextSkillCoverage,
+            'current_position_id' => $currentPosition->id,
+            'next_position_id' => $nextPosition?->id,
+            'current_skill_percentage' => $currentSkillCoverage['percentage'],
+            'next_skill_percentage' => $nextSkillCoverage['percentage'] ?? null,
             'tenure' => $tenure,
-            'missing_requirements' => [
-                'current_position_skills' => $this->missingSkills($currentPosition, $currentSkillCoverage['matched_skill_ids']),
-                'next_position_skills' => $nextPosition ? $this->missingSkills($nextPosition, $nextSkillCoverage['matched_skill_ids']) : [],
+            'missing_skills' => [
+                'current_position' => $this->missingSkills($currentPosition, $currentSkillCoverage['matched_skill_ids']),
+                'next_position' => $nextPosition ? $this->missingSkills($nextPosition, $nextSkillCoverage['matched_skill_ids']) : [],
                 'tenure' => $tenure['eligible'] ? null : $tenure['message'],
             ],
         ];
+    }
+
+    public function resolveCurrentStepIndex(CareerPath $careerPath, ?Position $currentPosition): ?int
+    {
+        if (! $currentPosition) {
+            return null;
+        }
+
+        $steps = $careerPath->steps->sortBy('order')->values();
+
+        foreach ($steps as $index => $step) {
+            if ((int) $step->from_position_id === (int) $currentPosition->id) {
+                return $index;
+            }
+        }
+
+        return null;
     }
 
     private function resolveNextPosition(CareerPath $careerPath, ?Position $currentPosition): ?Position
@@ -180,9 +191,6 @@ class PromotionEligibilityService
             ->map(fn ($skill) => [
                 'id' => $skill->id,
                 'name' => $skill->name,
-                'required_proficiency' => $skill->pivot?->required_proficiency,
-                'minimum_score' => $skill->pivot?->minimum_score,
-                'is_required' => (bool) ($skill->pivot?->is_required ?? false),
             ])
             ->values()
             ->all();
