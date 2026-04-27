@@ -66,36 +66,41 @@ export default function Show({
             <div className="border-b border-gray-200 px-5 py-4">
               <h2 className="text-lg font-semibold text-gray-900">Promotion eligibility</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Review your current readiness against your selected career path.
+                Review your current readiness against compulsory department requirements, position requirements, and tenure.
               </p>
             </div>
 
             <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
               <div className="rounded-md bg-gray-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Department skills</p>
+                <p className="mt-2 text-2xl font-semibold text-gray-900">
+                  {promotionEligibility.department_skill_summary?.matched_count ?? 0} /{' '}
+                  {promotionEligibility.department_skill_summary?.required_count ?? 0}
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  {promotionEligibility.department_skill_summary?.percentage ?? 0}% compulsory requirements met
+                </p>
+              </div>
+
+              <div className="rounded-md bg-gray-50 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Current position skills</p>
                 <p className="mt-2 text-2xl font-semibold text-gray-900">
-                  {promotionEligibility.current_skill_percentage ?? 0}%
+                  {promotionEligibility.current_position_skill_summary?.matched_count ?? 0} /{' '}
+                  {promotionEligibility.current_position_skill_summary?.required_count ?? 0}
                 </p>
-                <p className="mt-1 text-sm text-gray-600">Minimum required: 80%</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  {promotionEligibility.current_position_skill_summary?.percentage ?? 0}% compulsory requirements met
+                </p>
               </div>
 
               <div className="rounded-md bg-gray-50 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Next position skills</p>
                 <p className="mt-2 text-2xl font-semibold text-gray-900">
-                  {promotionEligibility.next_skill_percentage ?? 0}%
-                </p>
-                <p className="mt-1 text-sm text-gray-600">Minimum required: 60%</p>
-              </div>
-
-              <div className="rounded-md bg-gray-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Tenure</p>
-                <p className="mt-2 text-2xl font-semibold text-gray-900">
-                  {promotionEligibility.tenure?.eligible ? 'Met' : 'Not met'}
+                  {promotionEligibility.next_position_skill_summary?.matched_count ?? 0} /{' '}
+                  {promotionEligibility.next_position_skill_summary?.required_count ?? 0}
                 </p>
                 <p className="mt-1 text-sm text-gray-600">
-                  {promotionEligibility.tenure?.required_value != null && promotionEligibility.tenure?.required_type
-                    ? `Requires ${promotionEligibility.tenure.required_value} ${promotionEligibility.tenure.required_type}`
-                    : 'No duration requirement set'}
+                  {promotionEligibility.next_position_skill_summary?.percentage ?? 0}% compulsory requirements met
                 </p>
               </div>
             </div>
@@ -109,30 +114,43 @@ export default function Show({
                 {promotionEligibility.eligible ? 'Eligible for promotion' : 'Not yet eligible'}
               </div>
 
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <div className="mt-4 grid gap-4 md:grid-cols-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900">Current position gaps</h3>
-                  {promotionEligibility.missing_skills?.current_position?.length ? (
+                  <h3 className="text-sm font-semibold text-gray-900">Department gaps</h3>
+                  {promotionEligibility.department_skill_gaps?.length ? (
                     <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
-                      {promotionEligibility.missing_skills.current_position.map((skill) => (
+                      {promotionEligibility.department_skill_gaps.map((skill) => (
                         <li key={skill.id}>{skill.name}</li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-2 text-sm text-gray-600">No missing skills for the current position.</p>
+                    <p className="mt-2 text-sm text-gray-600">All compulsory department requirements are met.</p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Current position gaps</h3>
+                  {promotionEligibility.current_position_skill_gaps?.length ? (
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                      {promotionEligibility.current_position_skill_gaps.map((skill) => (
+                        <li key={skill.id}>{skill.name}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm text-gray-600">All compulsory current position requirements are met.</p>
                   )}
                 </div>
 
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">Next position gaps</h3>
-                  {promotionEligibility.missing_skills?.next_position?.length ? (
+                  {promotionEligibility.next_position_skill_gaps?.length ? (
                     <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
-                      {promotionEligibility.missing_skills.next_position.map((skill) => (
+                      {promotionEligibility.next_position_skill_gaps.map((skill) => (
                         <li key={skill.id}>{skill.name}</li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-2 text-sm text-gray-600">No missing skills for the next position.</p>
+                    <p className="mt-2 text-sm text-gray-600">All compulsory next position requirements are met.</p>
                   )}
                 </div>
 
@@ -141,7 +159,7 @@ export default function Show({
                   <p className="mt-2 text-sm text-gray-600">
                     {promotionEligibility.tenure?.eligible
                       ? 'Tenure requirement has been met.'
-                      : promotionEligibility.missing_skills?.tenure || 'Tenure requirement is not met.'}
+                      : promotionEligibility.tenure?.message || 'Tenure requirement is not met.'}
                   </p>
                 </div>
               </div>
