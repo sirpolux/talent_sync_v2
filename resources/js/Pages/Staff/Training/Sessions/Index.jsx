@@ -104,7 +104,7 @@ function SessionCard({ session }) {
   const cardClasses = hasApplied
     ? "border-violet-200 bg-violet-50/60 shadow-sm transition hover:shadow-md"
     : "border-slate-200 bg-white shadow-sm transition hover:shadow-md";
-  const viewHref = session?.has_applied ? route("trainer.sessions.show", session.id) : route("trainer.sessions.show", session.id);
+  const viewHref = route("staff.training.sessions.show", session.id);
 
   return (
     <div className={`rounded-2xl border p-5 ${cardClasses}`}>

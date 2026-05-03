@@ -18,7 +18,17 @@ export default function Show({
   };
 
   const isSelected = activeSelection?.career_path_id === careerPath.id;
+  const hasActiveSelection = Boolean(activeSelection);
+  const selectedPathMatchesViewedPath = isSelected;
   const steps = Array.isArray(careerPath.steps) ? careerPath.steps : [];
+  const missingRequirements = promotionEligibility?.missing_requirements ?? null;
+  const departmentMissingRequirements = Array.isArray(missingRequirements?.department)
+    ? missingRequirements.department
+    : [];
+  const positionMissingRequirements = Array.isArray(missingRequirements?.position)
+    ? missingRequirements.position
+    : [];
+  const tenureMissingRequirement = missingRequirements?.tenure;
 
   return (
     <StaffLayout headerTitle="Career Paths">
@@ -66,7 +76,9 @@ export default function Show({
             <div className="border-b border-gray-200 px-5 py-4">
               <h2 className="text-lg font-semibold text-gray-900">Promotion eligibility</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Review your current readiness against compulsory department requirements, position requirements, and tenure.
+                {selectedPathMatchesViewedPath
+                  ? 'Review your current readiness against compulsory department requirements, position requirements, and tenure for this selected path.'
+                  : 'Eligibility is calculated for your active career path. Select this path to view readiness and missing requirements for it.'}
               </p>
             </div>
 
@@ -114,55 +126,59 @@ export default function Show({
                 {promotionEligibility.eligible ? 'Eligible for promotion' : 'Not yet eligible'}
               </div>
 
-              <div className="mt-4 grid gap-4 md:grid-cols-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">Department gaps</h3>
-                  {promotionEligibility.department_skill_gaps?.length ? (
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
-                      {promotionEligibility.department_skill_gaps.map((skill) => (
-                        <li key={skill.id}>{skill.name}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-sm text-gray-600">All compulsory department requirements are met.</p>
-                  )}
-                </div>
+              {selectedPathMatchesViewedPath ? (
+                <div className="mt-4 grid gap-4 md:grid-cols-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Department gaps</h3>
+                    {departmentMissingRequirements.length ? (
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                        {departmentMissingRequirements.map((skill) => (
+                          <li key={skill.id}>{skill.name}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 text-sm text-gray-600">All compulsory department requirements are met.</p>
+                    )}
+                  </div>
 
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">Current position gaps</h3>
-                  {promotionEligibility.current_position_skill_gaps?.length ? (
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
-                      {promotionEligibility.current_position_skill_gaps.map((skill) => (
-                        <li key={skill.id}>{skill.name}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-sm text-gray-600">All compulsory current position requirements are met.</p>
-                  )}
-                </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Current position gaps</h3>
+                    {positionMissingRequirements.length ? (
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                        {positionMissingRequirements.map((skill) => (
+                          <li key={skill.id}>{skill.name}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 text-sm text-gray-600">All compulsory current position requirements are met.</p>
+                    )}
+                  </div>
 
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">Next position gaps</h3>
-                  {promotionEligibility.next_position_skill_gaps?.length ? (
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
-                      {promotionEligibility.next_position_skill_gaps.map((skill) => (
-                        <li key={skill.id}>{skill.name}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-sm text-gray-600">All compulsory next position requirements are met.</p>
-                  )}
-                </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Tenure gap</h3>
+                    <p className="mt-2 text-sm text-gray-600">
+                      {promotionEligibility.tenure?.eligible
+                        ? 'Tenure requirement has been met.'
+                        : tenureMissingRequirement || 'Tenure requirement is not met.'}
+                    </p>
+                  </div>
 
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">Duration gap</h3>
-                  <p className="mt-2 text-sm text-gray-600">
-                    {promotionEligibility.tenure?.eligible
-                      ? 'Tenure requirement has been met.'
-                      : promotionEligibility.tenure?.message || 'Tenure requirement is not met.'}
-                  </p>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Readiness</h3>
+                    <p className="mt-2 text-sm text-gray-600">
+                      {promotionEligibility.eligible
+                        ? 'You meet the compulsory requirements for this path.'
+                        : 'You still have missing requirements for this path.'}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="mt-4 rounded-md bg-slate-50 p-4 text-sm text-slate-700">
+                  {hasActiveSelection
+                    ? 'This path is not your active career path. Select it to view the missing requirements and full promotion readiness for this path.'
+                    : 'Select a career path to view your missing requirements and promotion readiness.'}
+                </div>
+              )}
             </div>
           </div>
         ) : null}
@@ -229,7 +245,7 @@ export default function Show({
             disabled={processing || isSelected}
             className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-300"
           >
-            {isSelected ? 'Selected' : 'Select this path'}
+            {isSelected ? 'Selected' : hasActiveSelection ? 'Switch requires admin' : 'Select this path'}
           </button>
         </div>
       </div>

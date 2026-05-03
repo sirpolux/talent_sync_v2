@@ -1,6 +1,6 @@
 import TutorLayout from "@/Layouts/TutorLayout";
 import { Head, Link } from "@inertiajs/react";
-import { ArrowLeft, CalendarDays, CircleCheckBig, CircleDot, Clock3, Users, UploadCloud, FileText } from "lucide-react";
+import { ArrowLeft, CalendarDays, CircleCheckBig, CircleDot, Users, UploadCloud } from "lucide-react";
 
 function formatDateTime(value) {
   if (!value) {
@@ -31,6 +31,12 @@ function StatusPill({ status }) {
     completed: "bg-blue-50 text-blue-700 border-blue-200",
     cancelled: "bg-rose-50 text-rose-700 border-rose-200",
     paused: "bg-amber-50 text-amber-700 border-amber-200",
+    pending: "bg-amber-50 text-amber-700 border-amber-200",
+    approved: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    rejected: "bg-rose-50 text-rose-700 border-rose-200",
+    waitlisted: "bg-orange-50 text-orange-700 border-orange-200",
+    withdrawn: "bg-slate-50 text-slate-700 border-slate-200",
+    no_show: "bg-slate-50 text-slate-700 border-slate-200",
   };
 
   return (
@@ -105,16 +111,55 @@ function UploadCard({ upload }) {
   );
 }
 
-export default function Show({ session = null }) {
-  const participants = Array.isArray(session?.participants) ? session.participants : [];
-  const progress = Array.isArray(session?.progress) ? session.progress : [];
-  const uploads = Array.isArray(session?.assessment_uploads) ? session.assessment_uploads : [];
+export default function Show({
+  trainer = null,
+  session = null,
+  participants = [],
+  progress = [],
+  assessmentUploads = [],
+  flash = {},
+}) {
+  const sessionParticipants = Array.isArray(participants)
+    ? participants
+    : Array.isArray(session?.participants)
+      ? session.participants
+      : [];
+
+  const sessionProgress = Array.isArray(progress)
+    ? progress
+    : Array.isArray(session?.progress)
+      ? session.progress
+      : [];
+
+  const sessionUploads = Array.isArray(assessmentUploads)
+    ? assessmentUploads
+    : Array.isArray(session?.assessmentUploads)
+      ? session.assessmentUploads
+      : Array.isArray(session?.assessment_uploads)
+        ? session.assessment_uploads
+        : [];
 
   return (
     <TutorLayout headerTitle="Training Sessions">
       <Head title={session?.title ?? "Training Session"} />
 
       <div className="mx-auto max-w-7xl space-y-6">
+        {flash?.success ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {flash.success}
+          </div>
+        ) : null}
+        {flash?.error ? (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {flash.error}
+          </div>
+        ) : null}
+        {flash?.status ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            {flash.status}
+          </div>
+        ) : null}
+
         <div className="rounded-3xl bg-gradient-to-r from-[#1E3A8A] to-[#059669] p-6 text-white shadow-lg">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-4xl">
@@ -145,7 +190,7 @@ export default function Show({ session = null }) {
 
         <div className="grid gap-4 lg:grid-cols-4">
           <DetailRow label="Skill" value={session?.skill?.name ?? session?.skill_name} />
-          <DetailRow label="Organization" value={session?.organization?.name ?? session?.organization_name} />
+          <DetailRow label="Organization" value={trainer?.organization_name ?? session?.organization?.name ?? session?.organization_name} />
           <DetailRow label="Start date" value={formatDateTime(session?.start_date ?? session?.starts_at)} />
           <DetailRow label="End date" value={formatDateTime(session?.end_date ?? session?.ends_at)} />
         </div>
@@ -167,21 +212,21 @@ export default function Show({ session = null }) {
                       <Users className="h-4 w-4" />
                       Participants
                     </div>
-                    <div className="mt-1 text-2xl font-semibold text-slate-900">{participants.length}</div>
+                    <div className="mt-1 text-2xl font-semibold text-slate-900">{sessionParticipants.length}</div>
                   </div>
                   <div className="rounded-xl bg-slate-50 p-4">
                     <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                       <CircleDot className="h-4 w-4" />
                       Progress
                     </div>
-                    <div className="mt-1 text-2xl font-semibold text-slate-900">{progress.length}</div>
+                    <div className="mt-1 text-2xl font-semibold text-slate-900">{sessionProgress.length}</div>
                   </div>
                   <div className="rounded-xl bg-slate-50 p-4">
                     <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                       <CircleCheckBig className="h-4 w-4" />
                       Uploads
                     </div>
-                    <div className="mt-1 text-2xl font-semibold text-slate-900">{uploads.length}</div>
+                    <div className="mt-1 text-2xl font-semibold text-slate-900">{sessionUploads.length}</div>
                   </div>
                 </div>
               </div>
@@ -192,9 +237,9 @@ export default function Show({ session = null }) {
                 <h2 className="text-lg font-semibold text-slate-900">Participants</h2>
               </div>
               <div className="p-5">
-                {participants.length ? (
+                {sessionParticipants.length ? (
                   <div className="grid gap-3 md:grid-cols-2">
-                    {participants.map((participant, index) => (
+                    {sessionParticipants.map((participant, index) => (
                       <PersonCard key={participant?.id ?? index} item={participant} roleLabel="Participant" />
                     ))}
                   </div>
@@ -211,9 +256,9 @@ export default function Show({ session = null }) {
                 <h2 className="text-lg font-semibold text-slate-900">Progress updates</h2>
               </div>
               <div className="p-5">
-                {progress.length ? (
+                {sessionProgress.length ? (
                   <div className="space-y-3">
-                    {progress.map((item, index) => (
+                    {sessionProgress.map((item, index) => (
                       <div key={item?.id ?? index} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <div>
@@ -242,9 +287,9 @@ export default function Show({ session = null }) {
                 <h2 className="text-lg font-semibold text-slate-900">Assessment uploads</h2>
               </div>
               <div className="p-5">
-                {uploads.length ? (
+                {sessionUploads.length ? (
                   <div className="space-y-3">
-                    {uploads.map((upload, index) => (
+                    {sessionUploads.map((upload, index) => (
                       <UploadCard key={upload?.id ?? index} upload={upload} />
                     ))}
                   </div>
@@ -267,6 +312,7 @@ export default function Show({ session = null }) {
                 <DetailRow label="Created" value={formatDateTime(session?.created_at)} />
                 <DetailRow label="Updated" value={formatDateTime(session?.updated_at)} />
                 <DetailRow label="Status" value={session?.status} />
+                <DetailRow label="Trainer" value={trainer?.name ?? trainer?.email ?? "—"} />
               </div>
             </div>
 

@@ -31,24 +31,34 @@ class PromotionEligibilityService
                     'missing_days' => null,
                     'message' => 'Employee does not have a current position assigned.',
                 ],
+                'department_skill_summary' => [
+                    'required_count' => 0,
+                    'matched_count' => 0,
+                    'missing_count' => 0,
+                    'percentage' => 100.0,
+                ],
+                'current_position_skill_summary' => [
+                    'required_count' => 0,
+                    'matched_count' => 0,
+                    'missing_count' => 0,
+                    'percentage' => 100.0,
+                ],
+                'next_position_skill_summary' => null,
                 'department_skill_gaps' => [],
                 'position_skill_gaps' => [],
                 'current_position_skill_gaps' => [],
                 'next_position_skill_gaps' => [],
-                'missing_skills' => [
-                    'current_position' => [],
-                    'next_position' => [],
+                'missing_requirements' => [
+                    'department' => [],
+                    'position' => [],
                     'tenure' => 'Employee does not have a current position assigned.',
                 ],
             ];
         }
 
         $nextPosition = $this->resolveNextPosition($careerPath, $currentPosition);
-        $departmentSkills = $this->departmentSkills($organizationUser);
         $departmentRequirements = $this->departmentRequiredSkills($organizationUser);
-        $currentPositionSkills = $this->positionSkills($currentPosition);
         $currentPositionRequirements = $this->positionRequiredSkills($currentPosition);
-        $nextPositionSkills = $nextPosition ? $this->positionSkills($nextPosition) : collect();
         $nextPositionRequirements = $nextPosition ? $this->positionRequiredSkills($nextPosition) : collect();
         $employeeSkillIds = $this->employeeSkillIds($organizationUser);
         $tenure = $this->calculateTenure($organizationUser, $currentPosition);
@@ -57,14 +67,13 @@ class PromotionEligibilityService
         $currentPositionSkillGaps = $this->missingRequirementSkills($currentPositionRequirements, $employeeSkillIds);
         $nextPositionSkillGaps = $nextPosition ? $this->missingRequirementSkills($nextPositionRequirements, $employeeSkillIds) : [];
 
-        $departmentSkillSummary = $this->buildSkillSummary($departmentSkills, $employeeSkillIds);
-        $currentPositionSkillSummary = $this->buildSkillSummary($currentPositionSkills, $employeeSkillIds);
-        $nextPositionSkillSummary = $nextPosition ? $this->buildSkillSummary($nextPositionSkills, $employeeSkillIds) : null;
+        $departmentSkillSummary = $this->buildSkillSummary($departmentRequirements, $employeeSkillIds);
+        $currentPositionSkillSummary = $this->buildSkillSummary($currentPositionRequirements, $employeeSkillIds);
+        $nextPositionSkillSummary = $nextPosition ? $this->buildSkillSummary($nextPositionRequirements, $employeeSkillIds) : null;
 
         $departmentRequirementsMet = empty($departmentSkillGaps);
-        $positionRequirementsMet = empty($currentPositionSkillGaps) && ($nextPosition ? empty($nextPositionSkillGaps) : true);
-
-        $eligible = $departmentRequirementsMet && empty($currentPositionSkillGaps) && $tenure['eligible'];
+        $positionRequirementsMet = empty($currentPositionSkillGaps);
+        $eligible = $departmentRequirementsMet && $positionRequirementsMet && $tenure['eligible'];
 
         return [
             'eligible' => $eligible,
@@ -80,9 +89,9 @@ class PromotionEligibilityService
             'position_skill_gaps' => $currentPositionSkillGaps,
             'current_position_skill_gaps' => $currentPositionSkillGaps,
             'next_position_skill_gaps' => $nextPositionSkillGaps,
-            'missing_skills' => [
-                'current_position' => $currentPositionSkillGaps,
-                'next_position' => $nextPositionSkillGaps,
+            'missing_requirements' => [
+                'department' => $departmentSkillGaps,
+                'position' => $currentPositionSkillGaps,
                 'tenure' => $tenure['eligible'] ? null : $tenure['message'],
             ],
         ];
@@ -122,16 +131,6 @@ class PromotionEligibilityService
         return $step?->toPosition;
     }
 
-    private function departmentSkills(OrganizationUser $organizationUser)
-    {
-        return DepartmentSkillRequirement::query()
-            ->with('skill')
-            ->where('organization_id', $organizationUser->organization_id)
-            ->where('department_id', $organizationUser->department_id)
-            ->where('active', true)
-            ->get();
-    }
-
     private function departmentRequiredSkills(OrganizationUser $organizationUser)
     {
         return DepartmentSkillRequirement::query()
@@ -140,14 +139,6 @@ class PromotionEligibilityService
             ->where('department_id', $organizationUser->department_id)
             ->where('active', true)
             ->where('must_have', true)
-            ->get();
-    }
-
-    private function positionSkills(Position $position)
-    {
-        return PositionSkill::query()
-            ->with('skill')
-            ->where('position_id', $position->id)
             ->get();
     }
 

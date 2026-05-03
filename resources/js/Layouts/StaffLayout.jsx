@@ -178,7 +178,6 @@ export default function StaffLayout({
             label: "Training Sessions",
             href: "staff.training.sessions.index",
           },
-          { key: "training.index", label: "My Trainings", href: "staff.training.index" },
           {
             key: "training.available",
             label: "Training Catalog",
@@ -375,7 +374,12 @@ export default function StaffLayout({
             </div>
 
             <div className="flex items-center gap-4">
-              <NotificationBell href={route("staff.notifications.index")} label="Notifications" emptyLabel="No staff notifications yet" showDropdown />
+              <NotificationBell
+                href={route("staff.notifications.index")}
+                label="Notifications"
+                emptyLabel="No staff notifications yet"
+                showDropdown
+              />
 
               <Link
                 as="button"
