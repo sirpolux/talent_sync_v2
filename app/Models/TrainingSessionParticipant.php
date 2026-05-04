@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TrainingSessionParticipant extends Model
 {
@@ -26,5 +27,10 @@ class TrainingSessionParticipant extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(TrainingSessionParticipantLog::class);
     }
 }

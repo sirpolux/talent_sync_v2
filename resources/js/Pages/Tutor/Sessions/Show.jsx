@@ -1,5 +1,5 @@
 import TutorLayout from "@/Layouts/TutorLayout";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 import { ArrowLeft, CalendarDays, CircleCheckBig, CircleDot, Users, UploadCloud } from "lucide-react";
 
 function formatDateTime(value) {
@@ -59,10 +59,13 @@ function DetailRow({ label, value }) {
   );
 }
 
-function PersonCard({ item, roleLabel }) {
-  const name = item?.name ?? item?.user?.name ?? item?.participant?.name ?? "Participant";
-  const email = item?.email ?? item?.user?.email ?? item?.participant?.email ?? null;
+function PersonCard({ item, roleLabel, sessionId, onReview, onStatusChange, sessionStartDate }) {
+  const name = item?.organization_user?.name ?? item?.name ?? item?.user?.name ?? item?.participant?.name ?? "Participant";
+  const email = item?.organization_user?.email ?? item?.email ?? item?.user?.email ?? item?.participant?.email ?? null;
   const status = item?.status ?? item?.progress_status ?? item?.pivot?.status ?? null;
+  const isReviewable = ['pending', 'waitlisted'].includes(status);
+  const isApproved = status === 'approved';
+  const canMoveToWaitlist = isApproved && sessionStartDate && new Date(sessionStartDate) > new Date();
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -74,6 +77,39 @@ function PersonCard({ item, roleLabel }) {
         </div>
         {status ? <StatusPill status={status} /> : null}
       </div>
+      {isReviewable && sessionId && onReview ? (
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={() => onReview(item.id, 'approved')}
+            className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+          >
+            <CircleCheckBig className="h-3 w-3" />
+            Approve
+          </button>
+          <button
+            onClick={() => onReview(item.id, 'rejected')}
+            className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100"
+          >
+            Reject
+          </button>
+          <button
+            onClick={() => onReview(item.id, 'waitlisted')}
+            className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
+          >
+            Waitlist
+          </button>
+        </div>
+      ) : null}
+      {canMoveToWaitlist && onStatusChange ? (
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={() => onStatusChange(item.id, 'waitlisted')}
+            className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
+          >
+            Move to Waitlist
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -138,6 +174,27 @@ export default function Show({
       : Array.isArray(session?.assessment_uploads)
         ? session.assessment_uploads
         : [];
+
+  const handleReview = (participantId, status) => {
+    if (confirm(`Are you sure you want to ${status} this participant?`)) {
+      router.patch(route('trainer.sessions.participants.review', [session.id, participantId]), {
+        status,
+      }, {
+        preserveScroll: true,
+      });
+    }
+  };
+
+  const handleStatusChange = (participantId, status) => {
+    const actionText = status === 'waitlisted' ? 'move to waitlist' : 'update status';
+    if (confirm(`Are you sure you want to ${actionText} for this participant?`)) {
+      router.patch(route('trainer.sessions.participants.status', [session.id, participantId]), {
+        status,
+      }, {
+        preserveScroll: true,
+      });
+    }
+  };
 
   return (
     <TutorLayout headerTitle="Training Sessions">
@@ -240,7 +297,15 @@ export default function Show({
                 {sessionParticipants.length ? (
                   <div className="grid gap-3 md:grid-cols-2">
                     {sessionParticipants.map((participant, index) => (
-                      <PersonCard key={participant?.id ?? index} item={participant} roleLabel="Participant" />
+                      <PersonCard 
+                        key={participant?.id ?? index} 
+                        item={participant} 
+                        roleLabel="Participant"
+                        sessionId={session?.id}
+                        onReview={handleReview}
+                        onStatusChange={handleStatusChange}
+                        sessionStartDate={session?.start_date}
+                      />
                     ))}
                   </div>
                 ) : (

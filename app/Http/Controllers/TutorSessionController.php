@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\OrganizationUser;
 use App\Models\Skill;
 use App\Models\TrainingSession;
-use App\Models\TrainingSessionParticipant;
+use App\Models\TrainingSessionParticipantLog;
 use App\Models\TrainerProfile;
 use App\Models\TrainerSpecialty;
 use App\Notifications\TrainingSessionApplicationStatusNotification;
@@ -204,7 +204,11 @@ class TutorSessionController extends Controller
 
         abort_unless(in_array($participant->status, self::PARTICIPANT_REVIEWABLE_STATUSES, true), 422, 'This application is no longer reviewable.');
 
-        if ($data['status'] === 'approved') {
+        $oldStatus = $participant->status;
+        $newStatus = $data['status'];
+
+        // Check capacity for approval
+        if ($newStatus === 'approved') {
             $capacity = $this->sessionCapacity($session);
             $approvedCount = $this->approvedParticipantCount($session);
 
@@ -214,11 +218,25 @@ class TutorSessionController extends Controller
         }
 
         $participant->update([
-            'status' => $data['status'],
+            'status' => $newStatus,
             'reviewed_by' => $request->user()?->id,
             'reviewed_at' => now(),
             'review_notes' => $data['review_notes'] ?? null,
         ]);
+
+        // Log the change
+        $this->logParticipantChange(
+            $participant,
+            'status_changed',
+            $oldStatus,
+            $newStatus,
+            $request->user()->id,
+            $data['review_notes'] ?? null,
+            [
+                'session_capacity' => $this->sessionCapacity($session),
+                'approved_count' => $this->approvedParticipantCount($session),
+            ]
+        );
 
         $this->notifyParticipantStatusChange($session, $participant->fresh());
 
@@ -234,24 +252,58 @@ class TutorSessionController extends Controller
         $this->assertParticipantBelongsToSession($session, $participant);
 
         $data = $request->validate([
-            'status' => ['required', 'string', Rule::in(['completed', 'no_show', 'cancelled'])],
+            'status' => ['required', 'string', Rule::in(['completed', 'no_show', 'cancelled', 'waitlisted'])],
             'review_notes' => ['nullable', 'string'],
         ]);
 
         abort_unless(in_array($participant->status, ['approved'], true), 422, 'Only approved participants can be moved to a final attendance status.');
 
+        // Allow moving approved to waitlist only if session hasn't started
+        if ($data['status'] === 'waitlisted') {
+            if ($session->start_date && $session->start_date->isPast()) {
+                return back()->with('error', 'Cannot move participant to waitlist after session has started.');
+            }
+        } elseif (!in_array($data['status'], ['completed', 'no_show', 'cancelled'], true)) {
+            abort(422, 'Invalid status for approved participant.');
+        }
+
+        $oldStatus = $participant->status;
+        $newStatus = $data['status'];
+
         $participant->update([
-            'status' => $data['status'],
+            'status' => $newStatus,
             'reviewed_by' => $request->user()?->id,
             'reviewed_at' => now(),
             'review_notes' => $data['review_notes'] ?? $participant->review_notes,
         ]);
 
+        // Log the change
+        $this->logParticipantChange(
+            $participant,
+            'status_changed',
+            $oldStatus,
+            $newStatus,
+            $request->user()->id,
+            $data['review_notes'] ?? null,
+            [
+                'session_started' => $session->start_date ? $session->start_date->isPast() : false,
+                'reason' => $data['status'] === 'waitlisted' ? 'moved_to_waitlist' : 'attendance_update',
+            ]
+        );
+
         $this->notifyParticipantStatusChange($session, $participant->fresh());
+
+        $message = match ($data['status']) {
+            'waitlisted' => 'Participant moved to waitlist successfully.',
+            'completed' => 'Participant attendance marked as completed.',
+            'no_show' => 'Participant marked as no show.',
+            'cancelled' => 'Participant attendance cancelled.',
+            default => 'Participant status updated successfully.',
+        };
 
         return redirect()
             ->route('trainer.sessions.show', $session)
-            ->with('success', 'Participant attendance status updated successfully.');
+            ->with('success', $message);
     }
 
     public function show(Request $request, TrainingSession $session): Response
@@ -631,18 +683,16 @@ class TutorSessionController extends Controller
         return $session->capacity !== null ? (int) $session->capacity : null;
     }
 
-    protected function notifyParticipantStatusChange(TrainingSession $session, TrainingSessionParticipant $participant): void
+    protected function logParticipantChange(TrainingSessionParticipant $participant, string $action, string $oldStatus, string $newStatus, int $performedBy, ?string $notes = null, ?array $metadata = null): void
     {
-        $organizationUser = OrganizationUser::query()
-            ->with('user')
-            ->find($participant->organization_user_id);
-
-        $organizationUser?->user?->notify(
-            new TrainingSessionApplicationStatusNotification(
-                $session,
-                $participant,
-                $participant->status
-            )
-        );
+        TrainingSessionParticipantLog::create([
+            'training_session_participant_id' => $participant->id,
+            'action' => $action,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'performed_by' => $performedBy,
+            'notes' => $notes,
+            'metadata' => $metadata,
+        ]);
     }
 }
